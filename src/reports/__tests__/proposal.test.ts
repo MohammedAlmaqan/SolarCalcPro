@@ -147,6 +147,16 @@ describe('buildProposalPdfHtml — structured proposal', () => {
     expect(html).toContain(`${formatNumber(data.cost.simplePaybackYears as number, 1)} years`);
   });
 
+  it('includes the cash-flow analysis (NPV, LCOE, discounted payback)', () => {
+    const data = proposalData();
+    const html = buildProposalPdfHtml(data);
+    expect(html).toContain('Discounted payback period');
+    expect(html).toContain('Net present value');
+    expect(html).toContain(`$${formatNumber(data.cost.financial.netPresentValue, 2)}`);
+    expect(html).toContain('Levelized cost of energy (LCOE)');
+    expect(html).toContain(`${data.cost.financial.systemLifeYears} years`);
+  });
+
   it('includes terms, signature page and page-break control', () => {
     const html = buildProposalPdfHtml(proposalData());
     expect(html).toContain('Terms &amp; conditions');

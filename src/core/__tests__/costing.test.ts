@@ -76,6 +76,37 @@ describe('estimateCost — line items scale with the sized design', () => {
     expect(estimate.simplePaybackYears).toBeCloseTo(estimate.total / estimate.annualSavings, 2);
   });
 
+  it('exposes a full financial analysis consistent with the estimate', () => {
+    const { financial } = estimate;
+    expect(financial.annualSavings).toBe(estimate.annualSavings);
+    expect(financial.simplePaybackYears).toBe(estimate.simplePaybackYears);
+    expect(financial.lifetimeEnergyKwh).toBeCloseTo(
+      estimate.annualProductionKwh * financial.systemLifeYears,
+      2,
+    );
+    expect(financial.lifetimeCost).toBeGreaterThanOrEqual(estimate.total);
+    expect(financial.lcoe).toBeGreaterThan(0);
+    expect(financial.discountRate).toBe(0.05);
+    expect(financial.systemLifeYears).toBe(25);
+    // Hybrid systems store energy through the battery → cycling is modeled.
+    expect(financial.annualBatteryCycles).not.toBeNull();
+  });
+
+  it('accepts financial options and reflects them in the model', () => {
+    const custom = estimateFor(HYBRID_INPUT, {
+      discountRate: 0.08,
+      systemLifeYears: 20,
+      tariffEscalationRate: 0.04,
+    });
+    expect(custom.financial.discountRate).toBe(0.08);
+    expect(custom.financial.systemLifeYears).toBe(20);
+    expect(custom.financial.tariffEscalationRate).toBe(0.04);
+    expect(custom.financial.lifetimeEnergyKwh).toBeCloseTo(
+      custom.annualProductionKwh * 20,
+      2,
+    );
+  });
+
   it('reflects a custom electric rate and currency', () => {
     const custom = estimateFor(HYBRID_INPUT, { electricRate: 0.25, currency: '€' });
     expect(custom.currency).toBe('€');
@@ -112,6 +143,9 @@ describe('estimateCost — system type shapes the bill of materials', () => {
     expect(estimate.lines.find((l) => l.id === 'cable-dc')).toBeUndefined();
     expect(estimate.lines.find((l) => l.id === 'cable-pv')).toBeDefined();
     expect(estimate.lines.find((l) => l.id === 'cable-ac')).toBeDefined();
+    // Grid-tied systems have no battery cycling or replacements.
+    expect(estimate.financial.annualBatteryCycles).toBeNull();
+    expect(estimate.financial.batteryReplacements).toEqual([]);
   });
 
   it('includes a charge controller line only for off-grid systems', () => {

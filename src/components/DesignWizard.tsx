@@ -920,6 +920,12 @@ function ResultsView(props: {
   const powerUnit = useSettingsStore((s) => s.units.power);
   const electricRate = useSettingsStore((s) => s.electricRate);
   const setElectricRate = useSettingsStore((s) => s.setElectricRate);
+  const discountRate = useSettingsStore((s) => s.discountRate);
+  const setDiscountRate = useSettingsStore((s) => s.setDiscountRate);
+  const systemLifeYears = useSettingsStore((s) => s.systemLifeYears);
+  const setSystemLifeYears = useSettingsStore((s) => s.setSystemLifeYears);
+  const tariffEscalationRate = useSettingsStore((s) => s.tariffEscalationRate);
+  const setTariffEscalationRate = useSettingsStore((s) => s.setTariffEscalationRate);
   const currency = useSettingsStore((s) => s.currency);
   const [costOpen, setCostOpen] = useState(false);
 
@@ -937,7 +943,13 @@ function ResultsView(props: {
   const isOnGrid = result.input.systemType === 'on-grid';
   const isOffGrid = result.input.systemType === 'off-grid';
   const currencySymbol = CURRENCY_SYMBOLS[currency];
-  const cost = estimateCost(result, { electricRate, currency: currencySymbol });
+  const cost = estimateCost(result, {
+    electricRate,
+    currency: currencySymbol,
+    discountRate,
+    systemLifeYears,
+    tariffEscalationRate,
+  });
   const money = (value: number): string => `${currencySymbol}${f.number(value, 2)}`;
 
   return (
@@ -1093,6 +1105,51 @@ function ResultsView(props: {
               tint={theme.colors.primary}
             />
           </View>
+          <View style={styles.statRow}>
+            <StatCard
+              label="Discounted payback"
+              value={
+                cost.financial.discountedPaybackYears === null
+                  ? '—'
+                  : f.number(cost.financial.discountedPaybackYears, 1)
+              }
+              unit={cost.financial.discountedPaybackYears === null ? undefined : 'yrs'}
+              hint={`${f.number(cost.financial.discountRate * 100, 0)}% discount rate`}
+              icon="timeline-clock-outline"
+              tint={theme.colors.secondary}
+            />
+            <StatCard
+              label="NPV"
+              value={money(cost.financial.netPresentValue)}
+              hint={`${cost.financial.systemLifeYears} year cash-flow`}
+              icon="chart-areaspline"
+              tint={theme.colors.primary}
+            />
+          </View>
+          <View style={styles.statRow}>
+            <StatCard
+              label="LCOE"
+              value={
+                cost.financial.lcoe === null ? '—' : `${currencySymbol}${f.number(cost.financial.lcoe, 3)}`
+              }
+              unit="per kWh"
+              hint="Levelized cost of energy"
+              icon="equalizer"
+              tint={theme.colors.tertiary}
+            />
+            <StatCard
+              label="Battery replacements"
+              value={f.number(cost.financial.batteryReplacements.length, 0)}
+              unit="over life"
+              hint={
+                cost.financial.batteryReplacements.length === 0
+                  ? 'Within system life'
+                  : cost.financial.batteryReplacements.map((r) => `yr ${r.year}`).join(', ')
+              }
+              icon="battery-alert"
+              tint={theme.colors.secondary}
+            />
+          </View>
 
           <Card mode="outlined">
             <Card.Content>
@@ -1120,6 +1177,36 @@ function ResultsView(props: {
             decimals={3}
             min={0}
             max={2}
+          />
+          <NumberField
+            label="Discount rate"
+            value={discountRate}
+            onChange={(v) => setDiscountRate(v ?? 0)}
+            unit="%"
+            helperText="Annual discount rate for NPV and discounted payback."
+            decimals={1}
+            min={0}
+            max={25}
+          />
+          <NumberField
+            label="System life"
+            value={systemLifeYears}
+            onChange={(v) => setSystemLifeYears(v ?? 25)}
+            unit="years"
+            helperText="Cash-flow analysis period (battery replacements within it)."
+            decimals={0}
+            min={1}
+            max={40}
+          />
+          <NumberField
+            label="Tariff escalation"
+            value={tariffEscalationRate}
+            onChange={(v) => setTariffEscalationRate(v ?? 0)}
+            unit="% / yr"
+            helperText="Annual increase applied to grid-rate savings."
+            decimals={1}
+            min={0}
+            max={15}
           />
 
           <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>

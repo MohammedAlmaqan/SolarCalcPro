@@ -21,6 +21,9 @@ const DEFAULT_PSH_KEY = 'ui.default_psh_location';
 const WIZARD_KEY = 'ui.wizard_mode';
 const STANDARDS_KEY = 'ui.standards_policy';
 const ELECTRIC_RATE_KEY = 'ui.electric_rate';
+const DISCOUNT_RATE_KEY = 'ui.discount_rate';
+const SYSTEM_LIFE_YEARS_KEY = 'ui.system_life_years';
+const TARIFF_ESCALATION_KEY = 'ui.tariff_escalation';
 const CURRENCY_KEY = 'ui.currency';
 const COMPANY_PROFILE_KEY = 'ui.company_profile';
 
@@ -110,6 +113,12 @@ interface SettingsState {
   standardsPolicy: StandardsPolicy;
   /** Grid electric rate used for payback estimates (currency/kWh). */
   electricRate: number;
+  /** Annual nominal discount rate (decimal) for NPV / discounted payback. */
+  discountRate: number;
+  /** Analysis period in years for the cash-flow model. */
+  systemLifeYears: number;
+  /** Annual tariff escalation (decimal) applied to savings. */
+  tariffEscalationRate: number;
   currency: CurrencyCode;
   companyProfile: CompanyProfile;
 
@@ -120,6 +129,9 @@ interface SettingsState {
   setWizardMode: (mode: WizardMode) => Promise<void>;
   setStandardsPolicy: (policy: StandardsPolicy) => Promise<void>;
   setElectricRate: (rate: number) => Promise<void>;
+  setDiscountRate: (rate: number) => Promise<void>;
+  setSystemLifeYears: (years: number) => Promise<void>;
+  setTariffEscalationRate: (rate: number) => Promise<void>;
   setCurrency: (currency: CurrencyCode) => Promise<void>;
   setCompanyProfile: (patch: Partial<CompanyProfile>) => Promise<void>;
 }
@@ -136,6 +148,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   wizardMode: 'wizard',
   standardsPolicy: 'strict',
   electricRate: 0.15,
+  discountRate: 0.05,
+  systemLifeYears: 25,
+  tariffEscalationRate: 0.02,
   currency: 'USD',
   companyProfile: DEFAULT_COMPANY_PROFILE,
 
@@ -151,6 +166,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       wizard,
       standards,
       electricRate,
+      discountRate,
+      systemLifeYears,
+      tariffEscalation,
       currency,
       companyProfile,
     ] = await Promise.all([
@@ -163,6 +181,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       repo.get(WIZARD_KEY),
       repo.get(STANDARDS_KEY),
       repo.getNumber(ELECTRIC_RATE_KEY),
+      repo.getNumber(DISCOUNT_RATE_KEY),
+      repo.getNumber(SYSTEM_LIFE_YEARS_KEY),
+      repo.getNumber(TARIFF_ESCALATION_KEY),
       repo.get(CURRENCY_KEY),
       repo.get(COMPANY_PROFILE_KEY),
     ]);
@@ -179,6 +200,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       wizardMode: isWizardMode(wizard) ? wizard : 'wizard',
       standardsPolicy: isStandardsPolicy(standards) ? standards : 'strict',
       electricRate: electricRate ?? 0.15,
+      discountRate: discountRate ?? 0.05,
+      systemLifeYears: systemLifeYears ?? 25,
+      tariffEscalationRate: tariffEscalation ?? 0.02,
       currency: isCurrencyCode(currency) ? currency : 'USD',
       companyProfile: companyProfile
         ? { ...DEFAULT_COMPANY_PROFILE, ...JSON.parse(companyProfile) }
@@ -223,6 +247,21 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   setElectricRate: async (rate) => {
     await settingsRepo(getDbService()).setNumber(ELECTRIC_RATE_KEY, rate);
     set({ electricRate: rate });
+  },
+
+  setDiscountRate: async (rate) => {
+    await settingsRepo(getDbService()).setNumber(DISCOUNT_RATE_KEY, rate);
+    set({ discountRate: rate });
+  },
+
+  setSystemLifeYears: async (years) => {
+    await settingsRepo(getDbService()).setNumber(SYSTEM_LIFE_YEARS_KEY, years);
+    set({ systemLifeYears: years });
+  },
+
+  setTariffEscalationRate: async (rate) => {
+    await settingsRepo(getDbService()).setNumber(TARIFF_ESCALATION_KEY, rate);
+    set({ tariffEscalationRate: rate });
   },
 
   setCurrency: async (currency) => {

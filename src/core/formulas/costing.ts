@@ -1,4 +1,6 @@
 import type { BatteryChemistry, DesignResult } from '../types';
+import { REFERENCE_BATTERY } from '../data/referenceComponents';
+import { analyzeFinancials, type FinancialAnalysis } from './financial';
 
 /**
  * Material pricing model used for cost estimates. Defaults are realistic
@@ -63,6 +65,8 @@ export interface CostEstimate {
   annualSavings: number;
   /** Total / annual savings; null when the rate is zero. */
   simplePaybackYears: number | null;
+  /** Financial analysis (NPV, LCOE, discounted payback, replacements). */
+  financial: FinancialAnalysis;
   assumptions: string[];
 }
 
@@ -94,6 +98,12 @@ export function estimateCost(
     electricRate?: number;
     /** Currency symbol for the estimate, default '$'. */
     currency?: string;
+    /** Annual nominal discount rate (decimal), default 0.05. */
+    discountRate?: number;
+    /** Analysis period in years, default 25. */
+    systemLifeYears?: number;
+    /** Annual tariff escalation (decimal), default 0.02. */
+    tariffEscalationRate?: number;
   },
 ): CostEstimate {
   const book: PriceBook = { ...DEFAULT_PRICE_BOOK, ...options?.priceBook };
@@ -180,10 +190,26 @@ export function estimateCost(
   const annualSavings = money(annualProductionKwh * electricRate);
   const simplePaybackYears = annualSavings > 0 ? money(total / annualSavings) : null;
 
+  const batteryLine = lines.find((l) => l.id === 'batteries');
+  const batterySpec = input.selected?.battery ?? REFERENCE_BATTERY;
+  const financial = analyzeFinancials({
+    totalCost: total,
+    annualProductionKwh,
+    electricRate,
+    discountRate: options?.discountRate,
+    systemLifeYears: options?.systemLifeYears,
+    tariffEscalationRate: options?.tariffEscalationRate,
+    batteryKwh: isOnGrid ? 0 : battery.actualCapacityKwh,
+    dailyCycledKwh: isOnGrid ? 0 : result.dailyLoad.totalWhPerDay / 1000,
+    batteryCycleLife: batterySpec.cycles ?? 0,
+    batteryReplacementCost: batteryLine?.total ?? 0,
+  });
+
   const assumptions = [
     `Solar yield modeled at ${Math.round(performanceRatio * 100)}% system performance ratio over ${avgPsh} peak sun hours/day.`,
     `BOS allowance ${Math.round(book.bosPct * 100)}% and installation ${Math.round(book.laborPct * 100)}% of equipment.`,
     `Payback vs grid electricity at ${currency}${electricRate.toFixed(2)}/kWh — savings are annual yield × rate.`,
+    `Cash-flow model: ${financial.systemLifeYears} years, ${(financial.discountRate * 100).toFixed(0)}% discount rate, ${(financial.tariffEscalationRate * 100).toFixed(0)}% annual tariff escalation.`,
     'Cable runs counted as 2× one-way length; prices scale with conductor cross-section.',
   ];
 
@@ -197,6 +223,7 @@ export function estimateCost(
     annualProductionKwh,
     annualSavings,
     simplePaybackYears,
+    financial,
     assumptions,
   };
 }

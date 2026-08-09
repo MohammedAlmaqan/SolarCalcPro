@@ -262,6 +262,33 @@ export function buildProposalPdfHtml(data: ProposalData): string {
     <div class="lbl">Simple payback period</div>
     <div class="val">${cost.simplePaybackYears === null ? '—' : `${f.number(cost.simplePaybackYears, 1)} years`}</div>
   </div>
+  <div class="roi">
+    <div class="lbl">Discounted payback period (${(cost.financial.discountRate * 100).toFixed(0)}% discount rate)</div>
+    <div class="val">${
+      cost.financial.discountedPaybackYears === null
+        ? `not reached within ${cost.financial.systemLifeYears} years`
+        : `${f.number(cost.financial.discountedPaybackYears, 1)} years`
+    }</div>
+  </div>
+  <div class="roi">
+    <div class="lbl">Net present value (${cost.financial.systemLifeYears} years)</div>
+    <div class="val">${money(cost.financial.netPresentValue)}</div>
+  </div>
+  <div class="roi">
+    <div class="lbl">Levelized cost of energy (LCOE)</div>
+    <div class="val">${cost.financial.lcoe === null ? '—' : `${symbol}${f.number(cost.financial.lcoe, 3)}/kWh`}</div>
+  </div>
+  ${
+    cost.financial.batteryReplacements.length > 0
+      ? `
+  <div class="roi">
+    <div class="lbl">Battery replacements within system life</div>
+    <div class="val">${cost.financial.batteryReplacements
+      .map((r) => `year ${r.year} (${money(r.cost)})`)
+      .join(' · ')}</div>
+  </div>`
+      : ''
+  }
 
   <h3 style="font-size:11px; margin:14px 0 4px;">Assumptions</h3>
   <ul class="assumptions">

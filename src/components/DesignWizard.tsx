@@ -18,6 +18,7 @@ import { designSystem } from '@/core/engine';
 import type {
   BatteryChemistry,
   BatterySpec,
+  CableSpec,
   ChargeControllerSpec,
   InverterSpec,
   LoadItem,
@@ -98,6 +99,15 @@ export function DesignWizard(props: {
   const [selectedControllerId, setSelectedControllerId] = useState<string | null>(
     initial?.selectedControllerId ?? null,
   );
+  const [selectedPvCableId, setSelectedPvCableId] = useState<string | null>(
+    initial?.selectedPvCableId ?? null,
+  );
+  const [selectedDcCableId, setSelectedDcCableId] = useState<string | null>(
+    initial?.selectedDcCableId ?? null,
+  );
+  const [selectedAcCableId, setSelectedAcCableId] = useState<string | null>(
+    initial?.selectedAcCableId ?? null,
+  );
   const [inverterEfficiency, setInverterEfficiency] = useState<number | null>(
     initial?.inverterEfficiency ?? null,
   );
@@ -128,7 +138,7 @@ export function DesignWizard(props: {
 
   useEffect(() => {
     if (!reference.loaded) reference.load().catch((e) => console.error('Reference load failed', e));
-    const kinds = ['panel', 'inverter', 'battery', 'controller'] as const;
+    const kinds = ['panel', 'inverter', 'battery', 'controller', 'cable'] as const;
     kinds.forEach((kind) => {
       if (!lists[kind]) loadKind(kind).catch((e) => console.error(`Load ${kind} failed`, e));
     });
@@ -162,8 +172,26 @@ export function DesignWizard(props: {
       ? (lists.controller?.find((r) => r.id === selectedControllerId)?.spec as
           ChargeControllerSpec | undefined)
       : undefined;
-    return { panel, inverter, battery, controller };
-  }, [lists, selectedPanelId, selectedInverterId, selectedBatteryId, selectedControllerId]);
+    const pvCable = selectedPvCableId
+      ? (lists.cable?.find((r) => r.id === selectedPvCableId)?.spec as CableSpec | undefined)
+      : undefined;
+    const dcCable = selectedDcCableId
+      ? (lists.cable?.find((r) => r.id === selectedDcCableId)?.spec as CableSpec | undefined)
+      : undefined;
+    const acCable = selectedAcCableId
+      ? (lists.cable?.find((r) => r.id === selectedAcCableId)?.spec as CableSpec | undefined)
+      : undefined;
+    return { panel, inverter, battery, controller, pvCable, dcCable, acCable };
+  }, [
+    lists,
+    selectedPanelId,
+    selectedInverterId,
+    selectedBatteryId,
+    selectedControllerId,
+    selectedPvCableId,
+    selectedDcCableId,
+    selectedAcCableId,
+  ]);
 
   const standardsPolicy = useSettingsStore((s) => s.standardsPolicy);
   const setStandardsPolicy = useSettingsStore((s) => s.setStandardsPolicy);
@@ -201,6 +229,9 @@ export function DesignWizard(props: {
         inverter: resolved.inverter,
         battery: resolved.battery,
         controller: resolved.controller,
+        pvCable: resolved.pvCable,
+        dcCable: resolved.dcCable,
+        acCable: resolved.acCable,
       },
     };
   }, [
@@ -326,6 +357,9 @@ export function DesignWizard(props: {
         selectedInverterId,
         selectedBatteryId,
         selectedControllerId,
+        selectedPvCableId,
+        selectedDcCableId,
+        selectedAcCableId,
         loadMode,
         loads,
         totalDailyKwh,
@@ -728,6 +762,34 @@ export function DesignWizard(props: {
           helperText="MPPT recommended above 200 W array."
         />
       ) : null}
+      <SectionTitle title="Conductors (optional)" icon="cable-data" />
+      <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+        Leave unselected to let the engine size each run automatically. A chosen cable is honored
+        and checked against ampacity and voltage-drop limits.
+      </Text>
+      <ComponentSlot
+        kind="cable"
+        label="PV source cable"
+        selectedId={selectedPvCableId}
+        onSelect={setSelectedPvCableId}
+        helperText="Runs from the array to the inverter / controller (derated for rooftop temperature)."
+      />
+      {!isOnGrid ? (
+        <ComponentSlot
+          kind="cable"
+          label="DC battery cable"
+          selectedId={selectedDcCableId}
+          onSelect={setSelectedDcCableId}
+          helperText="Runs between the battery bank and the inverter DC input."
+        />
+      ) : null}
+      <ComponentSlot
+        kind="cable"
+        label="AC output cable"
+        selectedId={selectedAcCableId}
+        onSelect={setSelectedAcCableId}
+        helperText="Runs from the inverter AC output to the main distribution."
+      />
     </View>
   );
 

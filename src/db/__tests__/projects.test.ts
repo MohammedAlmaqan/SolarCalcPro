@@ -99,6 +99,34 @@ describe('projectRepo', () => {
     expect(result.pv.actualArrayWatts).toBeGreaterThan(0);
   });
 
+  it('round-trips selected catalog cables and resolves them in buildInput', async () => {
+    const db = await openTestDb();
+    const repo = projectRepo(db);
+
+    const project = await repo.createProject({ name: 'Cables', scenario: { loads: LOADS } });
+    const scenario = project.scenarios[0];
+
+    await repo.updateScenario(scenario.id, {
+      selectedPvCableId: 'c10',
+      selectedDcCableId: 'c35',
+      selectedAcCableId: 'c6',
+    });
+
+    const reloaded = await repo.getScenario(scenario.id);
+    expect(reloaded?.selectedPvCableId).toBe('c10');
+    expect(reloaded?.selectedDcCableId).toBe('c35');
+    expect(reloaded?.selectedAcCableId).toBe('c6');
+
+    const input = await repo.buildInput(scenario.id);
+    expect(input.selected?.pvCable?.crossSectionMm2).toBe(10);
+    expect(input.selected?.dcCable?.crossSectionMm2).toBe(35);
+    expect(input.selected?.acCable?.ampacityA).toBe(40);
+
+    const result = designSystem(input);
+    expect(result.cables.pvSource.fromCatalog).toBe(true);
+    expect(result.cables.pvSource.crossSectionMm2).toBe(10);
+  });
+
   it('stores and retrieves a cached design result', async () => {
     const db = await openTestDb();
     const repo = projectRepo(db);

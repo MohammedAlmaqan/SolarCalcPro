@@ -41,6 +41,9 @@ export interface ImportedScenario {
   selectedInverterId: string | null;
   selectedBatteryId: string | null;
   selectedControllerId: string | null;
+  selectedPvCableId: string | null;
+  selectedDcCableId: string | null;
+  selectedAcCableId: string | null;
   loadMode: LoadMode;
   totalDailyKwh: number | null;
   totalPeakKw: number | null;
@@ -85,6 +88,9 @@ export function exportProject(project: ProjectWithScenarios): string {
         selectedInverterId: scenario.selectedInverterId,
         selectedBatteryId: scenario.selectedBatteryId,
         selectedControllerId: scenario.selectedControllerId,
+        selectedPvCableId: scenario.selectedPvCableId,
+        selectedDcCableId: scenario.selectedDcCableId,
+        selectedAcCableId: scenario.selectedAcCableId,
         loadMode: scenario.loadMode,
         totalDailyKwh: scenario.totalDailyKwh,
         totalPeakKw: scenario.totalPeakKw,
@@ -156,6 +162,9 @@ export function parseProjectImport(text: string): ProjectExport {
         selectedBatteryId: typeof s.selectedBatteryId === 'string' ? s.selectedBatteryId : null,
         selectedControllerId:
           typeof s.selectedControllerId === 'string' ? s.selectedControllerId : null,
+        selectedPvCableId: typeof s.selectedPvCableId === 'string' ? s.selectedPvCableId : null,
+        selectedDcCableId: typeof s.selectedDcCableId === 'string' ? s.selectedDcCableId : null,
+        selectedAcCableId: typeof s.selectedAcCableId === 'string' ? s.selectedAcCableId : null,
         loadMode: s.loadMode === 'total' ? 'total' : 'appliances',
         totalDailyKwh: optionalNumber(s.totalDailyKwh),
         totalPeakKw: optionalNumber(s.totalPeakKw),

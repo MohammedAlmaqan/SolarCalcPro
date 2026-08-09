@@ -75,3 +75,61 @@ describe('sizeCables', () => {
     expect(result.acOutput.voltageDropPercent).toBeLessThanOrEqual(3);
   });
 });
+
+describe('sizeCables with a chosen catalog cable', () => {
+  it('honors a user-selected cable and reports real drop and ampacity', () => {
+    const audit = new AuditTrail();
+    const result = sizeCables(
+      {
+        pvSourceCurrentA: pvSourceCircuitCurrent(14),
+        pvArrayVmpV: 3 * 41.6,
+        dcOutputCurrentA: 1000 / (12 * 0.9),
+        systemVoltageV: 12,
+        acOutputCurrentA: 21.7,
+        acCableLengthM: 30,
+        chosen: {
+          pvSource: {
+            id: 'c6',
+            crossSectionMm2: 6,
+            awg: '10 AWG',
+            ampacityA: 40,
+            resistancePerKm: 3.08,
+          },
+          acOutput: {
+            id: 'c1.5',
+            crossSectionMm2: 1.5,
+            awg: '16 AWG',
+            ampacityA: 15,
+            resistancePerKm: 12.1,
+          },
+        },
+      },
+      audit,
+    );
+
+    expect(result.pvSource.fromCatalog).toBe(true);
+    expect(result.pvSource.crossSectionMm2).toBe(6);
+    // Design ampacity (Isc×1.56×1.25/0.6 ≈ 45.5 A) exceeds the 40 A rating.
+    expect(result.pvSource.ampacityPasses).toBe(false);
+    // Chosen 1.5 mm² AC cable over a 30 m run is far undersized.
+    expect(result.acOutput.ampacityPasses).toBe(false);
+    expect(result.acOutput.voltageDropPercent).toBeGreaterThan(3);
+    expect(result.acOutput.dropWithinLimit).toBe(false);
+  });
+
+  it('auto-sizes when no cable is chosen', () => {
+    const result = sizeCables(
+      {
+        pvSourceCurrentA: pvSourceCircuitCurrent(14),
+        pvArrayVmpV: 3 * 41.6,
+        dcOutputCurrentA: 1000 / (12 * 0.9),
+        systemVoltageV: 12,
+        acOutputCurrentA: 21.7,
+      },
+      new AuditTrail(),
+    );
+    expect(result.pvSource.fromCatalog).toBe(false);
+    expect(result.pvSource.ampacityPasses).toBe(true);
+    expect(result.pvSource.dropWithinLimit).toBe(true);
+  });
+});

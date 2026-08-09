@@ -50,6 +50,9 @@ export interface ScenarioRecord {
   selectedInverterId: string | null;
   selectedBatteryId: string | null;
   selectedControllerId: string | null;
+  selectedPvCableId: string | null;
+  selectedDcCableId: string | null;
+  selectedAcCableId: string | null;
   loadMode: LoadMode;
   totalDailyKwh: number | null;
   totalPeakKw: number | null;
@@ -96,6 +99,9 @@ export interface ScenarioPatch {
   selectedInverterId?: string | null;
   selectedBatteryId?: string | null;
   selectedControllerId?: string | null;
+  selectedPvCableId?: string | null;
+  selectedDcCableId?: string | null;
+  selectedAcCableId?: string | null;
   loadMode?: LoadMode;
   totalDailyKwh?: number | null;
   totalPeakKw?: number | null;
@@ -144,6 +150,9 @@ interface ScenarioRow {
   selected_inverter_id: string | null;
   selected_battery_id: string | null;
   selected_controller_id: string | null;
+  selected_pv_cable_id: string | null;
+  selected_dc_cable_id: string | null;
+  selected_ac_cable_id: string | null;
   load_mode: string;
   total_daily_kwh: number | null;
   total_peak_kw: number | null;
@@ -239,6 +248,9 @@ function applyPatch(patch: ScenarioPatch): {
   push('selected_inverter_id', patch.selectedInverterId);
   push('selected_battery_id', patch.selectedBatteryId);
   push('selected_controller_id', patch.selectedControllerId);
+  push('selected_pv_cable_id', patch.selectedPvCableId);
+  push('selected_dc_cable_id', patch.selectedDcCableId);
+  push('selected_ac_cable_id', patch.selectedAcCableId);
   push('load_mode', patch.loadMode);
   push('total_daily_kwh', patch.totalDailyKwh);
   push('total_peak_kw', patch.totalPeakKw);
@@ -289,6 +301,9 @@ export function projectRepo(db: DatabaseLike): ProjectRepo {
       selectedInverterId: row.selected_inverter_id,
       selectedBatteryId: row.selected_battery_id,
       selectedControllerId: row.selected_controller_id,
+      selectedPvCableId: row.selected_pv_cable_id,
+      selectedDcCableId: row.selected_dc_cable_id,
+      selectedAcCableId: row.selected_ac_cable_id,
       loadMode: row.load_mode as LoadMode,
       totalDailyKwh: row.total_daily_kwh,
       totalPeakKw: row.total_peak_kw,
@@ -431,8 +446,9 @@ export function projectRepo(db: DatabaseLike): ProjectRepo {
                min_temperature_c, temp_derating_factor, pv_cable_length_m, dc_cable_length_m,
                ac_cable_length_m, busbar_rating_a, main_breaker_a, selected_panel_id,
                selected_inverter_id, selected_battery_id, selected_controller_id,
+               selected_pv_cable_id, selected_dc_cable_id, selected_ac_cable_id,
                load_mode, total_daily_kwh, total_peak_kw, total_surge_kw, total_load_is_ac)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
               scenarioId,
               projectId,
@@ -460,6 +476,9 @@ export function projectRepo(db: DatabaseLike): ProjectRepo {
               scenario.selectedInverterId,
               scenario.selectedBatteryId,
               scenario.selectedControllerId,
+              scenario.selectedPvCableId,
+              scenario.selectedDcCableId,
+              scenario.selectedAcCableId,
               scenario.loadMode,
               scenario.totalDailyKwh,
               scenario.totalPeakKw,
@@ -494,9 +513,10 @@ export function projectRepo(db: DatabaseLike): ProjectRepo {
                min_temperature_c, temp_derating_factor, pv_cable_length_m, dc_cable_length_m,
                ac_cable_length_m, busbar_rating_a, main_breaker_a, selected_panel_id,
                selected_inverter_id, selected_battery_id, selected_controller_id,
+               selected_pv_cable_id, selected_dc_cable_id, selected_ac_cable_id,
                load_mode, total_daily_kwh, total_peak_kw, total_surge_kw, total_load_is_ac,
                design_result_json)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
               scenarioId,
               projectId,
@@ -524,6 +544,9 @@ export function projectRepo(db: DatabaseLike): ProjectRepo {
               scenario.selectedInverterId,
               scenario.selectedBatteryId,
               scenario.selectedControllerId,
+              scenario.selectedPvCableId,
+              scenario.selectedDcCableId,
+              scenario.selectedAcCableId,
               scenario.loadMode,
               scenario.totalDailyKwh,
               scenario.totalPeakKw,
@@ -552,8 +575,9 @@ export function projectRepo(db: DatabaseLike): ProjectRepo {
              min_temperature_c, temp_derating_factor, pv_cable_length_m, dc_cable_length_m,
              ac_cable_length_m, busbar_rating_a, main_breaker_a, selected_panel_id,
              selected_inverter_id, selected_battery_id, selected_controller_id,
+             selected_pv_cable_id, selected_dc_cable_id, selected_ac_cable_id,
              load_mode, total_daily_kwh, total_peak_kw, total_surge_kw, total_load_is_ac)
-           VALUES (?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           VALUES (?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             scenarioId,
             projectId,
@@ -580,6 +604,9 @@ export function projectRepo(db: DatabaseLike): ProjectRepo {
             patch.selectedInverterId ?? null,
             patch.selectedBatteryId ?? null,
             patch.selectedControllerId ?? null,
+            patch.selectedPvCableId ?? null,
+            patch.selectedDcCableId ?? null,
+            patch.selectedAcCableId ?? null,
             patch.loadMode ?? 'appliances',
             patch.totalDailyKwh ?? null,
             patch.totalPeakKw ?? null,
@@ -620,7 +647,7 @@ export function projectRepo(db: DatabaseLike): ProjectRepo {
     buildInput: async (scenarioId) => {
       const scenario = await (await projectRepo(db)).getScenario(scenarioId);
       if (!scenario) throw new Error(`Scenario not found: ${scenarioId}`);
-      const [panel, inverter, battery, controller] = await Promise.all([
+      const [panel, inverter, battery, controller, pvCable, dcCable, acCable] = await Promise.all([
         scenario.selectedPanelId
           ? catalog.getById('panel', scenario.selectedPanelId)
           : Promise.resolve(null),
@@ -632,6 +659,15 @@ export function projectRepo(db: DatabaseLike): ProjectRepo {
           : Promise.resolve(null),
         scenario.selectedControllerId
           ? catalog.getById('controller', scenario.selectedControllerId)
+          : Promise.resolve(null),
+        scenario.selectedPvCableId
+          ? catalog.getById('cable', scenario.selectedPvCableId)
+          : Promise.resolve(null),
+        scenario.selectedDcCableId
+          ? catalog.getById('cable', scenario.selectedDcCableId)
+          : Promise.resolve(null),
+        scenario.selectedAcCableId
+          ? catalog.getById('cable', scenario.selectedAcCableId)
           : Promise.resolve(null),
       ]);
       const input: SystemInput = {
@@ -664,6 +700,9 @@ export function projectRepo(db: DatabaseLike): ProjectRepo {
       if (inverter) selected.inverter = inverter.spec;
       if (battery) selected.battery = battery.spec;
       if (controller) selected.controller = controller.spec;
+      if (pvCable) selected.pvCable = pvCable.spec;
+      if (dcCable) selected.dcCable = dcCable.spec;
+      if (acCable) selected.acCable = acCable.spec;
       input.selected = selected;
       return input;
     },

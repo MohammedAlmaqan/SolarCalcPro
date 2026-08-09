@@ -129,4 +129,12 @@ ALTER TABLE scenarios ADD COLUMN total_surge_kw REAL;
 ALTER TABLE scenarios ADD COLUMN total_load_is_ac INTEGER NOT NULL DEFAULT 1;
 `,
   },
+  {
+    version: 3,
+    up: `
+ALTER TABLE scenarios ADD COLUMN selected_pv_cable_id TEXT;
+ALTER TABLE scenarios ADD COLUMN selected_dc_cable_id TEXT;
+ALTER TABLE scenarios ADD COLUMN selected_ac_cable_id TEXT;
+`,
+  },
 ];

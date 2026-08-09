@@ -1,5 +1,5 @@
 import type { AuditTrail } from '../audit';
-import type { CableResult, CableSelection } from '../types';
+import type { CableResult, CableSelection, CableSpec } from '../types';
 import { CABLE_TABLE, conductorArea, selectCable, voltageDropPercent } from '../data/cableTable';
 
 export const DEFAULT_DC_VOLTAGE_DROP_PCT = 2;
@@ -15,6 +15,8 @@ export interface CircuitParams {
   allowedDropPercent: number;
   tempDeratingFactor: number;
   label: string;
+  /** A user-chosen catalog cable to honor instead of auto-sizing. */
+  chosen?: CableSpec;
 }
 
 function sizeCircuit(params: CircuitParams, audit: AuditTrail): CableSelection {
@@ -31,13 +33,17 @@ function sizeCircuit(params: CircuitParams, audit: AuditTrail): CableSelection {
   // the voltage-drop area and the ampacity requirement, so step up to the next
   // larger standard size when the area-based selection is ampacity-limited.
   const designAmpacity = (params.currentA * 1.25) / params.tempDeratingFactor;
-  const byArea = selectCable(requiredArea);
+  const fromCatalog = params.chosen != null;
   const cable =
-    byArea.ampacityA >= designAmpacity
-      ? byArea
-      : (CABLE_TABLE.find(
-          (c) => c.crossSectionMm2 >= requiredArea && c.ampacityA >= designAmpacity,
-        ) ?? byArea);
+    params.chosen ??
+    (() => {
+      const byArea = selectCable(requiredArea);
+      return byArea.ampacityA >= designAmpacity
+        ? byArea
+        : (CABLE_TABLE.find(
+            (c) => c.crossSectionMm2 >= requiredArea && c.ampacityA >= designAmpacity,
+          ) ?? byArea);
+    })();
 
   const drop = voltageDropPercent({
     lengthM: params.lengthM,
@@ -47,6 +53,7 @@ function sizeCircuit(params: CircuitParams, audit: AuditTrail): CableSelection {
   });
 
   const ampacityPasses = cable.ampacityA >= designAmpacity;
+  const dropWithinLimit = drop <= params.allowedDropPercent;
 
   audit.add({
     id: `cable.${params.label}`,
@@ -61,6 +68,7 @@ function sizeCircuit(params: CircuitParams, audit: AuditTrail): CableSelection {
       selectedMm2: cable.crossSectionMm2,
       designAmpacityA: round2(designAmpacity),
       cableAmpacityA: cable.ampacityA,
+      source: fromCatalog ? 'catalog' : 'engine',
     },
     result: `${cable.crossSectionMm2} mm² (${cable.awg ?? 'n/a'}), ΔV ${round2(drop)}%`,
   });
@@ -72,6 +80,8 @@ function sizeCircuit(params: CircuitParams, audit: AuditTrail): CableSelection {
     voltageDropPercent: drop,
     ampacityA: cable.ampacityA,
     ampacityPasses,
+    dropWithinLimit,
+    fromCatalog,
   };
 }
 
@@ -87,6 +97,12 @@ export interface CableSizingInput {
   dcVoltageDropPercent?: number;
   acVoltageDropPercent?: number;
   tempDeratingFactor?: number;
+  /** Catalog cables chosen by the user; the engine auto-sizes when absent. */
+  chosen?: {
+    pvSource?: CableSpec;
+    dcOutput?: CableSpec;
+    acOutput?: CableSpec;
+  };
 }
 
 /**
@@ -106,6 +122,7 @@ export function sizeCables(input: CableSizingInput, audit: AuditTrail): CableRes
       allowedDropPercent: dcDrop,
       tempDeratingFactor: derating,
       label: 'pvSource',
+      chosen: input.chosen?.pvSource,
     },
     audit,
   );
@@ -118,6 +135,7 @@ export function sizeCables(input: CableSizingInput, audit: AuditTrail): CableRes
       allowedDropPercent: dcDrop,
       tempDeratingFactor: 1,
       label: 'dcOutput',
+      chosen: input.chosen?.dcOutput,
     },
     audit,
   );
@@ -130,6 +148,7 @@ export function sizeCables(input: CableSizingInput, audit: AuditTrail): CableRes
       allowedDropPercent: acDrop,
       tempDeratingFactor: 1,
       label: 'acOutput',
+      chosen: input.chosen?.acOutput,
     },
     audit,
   );

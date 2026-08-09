@@ -6,7 +6,13 @@ import {
   referenceInverterFor,
 } from './data/referenceComponents';
 import { calculateBatteryBank } from './formulas/battery';
-import { pvSourceCircuitCurrent, sizeCables, DEFAULT_AC_VOLTAGE } from './formulas/cable';
+import {
+  pvSourceCircuitCurrent,
+  sizeCables,
+  DEFAULT_AC_VOLTAGE,
+  DEFAULT_AC_VOLTAGE_DROP_PCT,
+  DEFAULT_DC_VOLTAGE_DROP_PCT,
+} from './formulas/cable';
 import { sizeChargeController, COLD_TEMP_VOC_MULTIPLIER } from './formulas/chargeController';
 import { sizeInverter } from './formulas/inverter';
 import { calculateDailyLoad, calculateTotalDailyLoad } from './formulas/load';
@@ -162,6 +168,11 @@ export function designSystem(input: SystemInput): DesignResult {
       dcVoltageDropPercent: input.dcVoltageDropPercent,
       acVoltageDropPercent: input.acVoltageDropPercent,
       tempDeratingFactor: tempDerating,
+      chosen: {
+        pvSource: input.selected?.pvCable,
+        dcOutput: input.selected?.dcCable,
+        acOutput: input.selected?.acCable,
+      },
     },
     audit,
   );
@@ -267,6 +278,33 @@ export function designSystem(input: SystemInput): DesignResult {
       severity: 'error',
       standard: 'IEC 62548',
       message: `AC output cable (${cables.acOutput.crossSectionMm2} mm²) ampacity is insufficient.`,
+    });
+  }
+
+  if (!cables.pvSource.dropWithinLimit) {
+    warnings.push({
+      code: 'CABLE-DROP-PV',
+      severity: 'warning',
+      standard: 'IEC 60364',
+      message: `PV source cable (${cables.pvSource.crossSectionMm2} mm²) voltage drop of ${cables.pvSource.voltageDropPercent.toFixed(2)}% exceeds the ${input.dcVoltageDropPercent ?? DEFAULT_DC_VOLTAGE_DROP_PCT}% limit.`,
+    });
+  }
+
+  if (!cables.dcOutput.dropWithinLimit) {
+    warnings.push({
+      code: 'CABLE-DROP-DC',
+      severity: 'warning',
+      standard: 'IEC 60364',
+      message: `DC output cable (${cables.dcOutput.crossSectionMm2} mm²) voltage drop of ${cables.dcOutput.voltageDropPercent.toFixed(2)}% exceeds the ${input.dcVoltageDropPercent ?? DEFAULT_DC_VOLTAGE_DROP_PCT}% limit.`,
+    });
+  }
+
+  if (!cables.acOutput.dropWithinLimit) {
+    warnings.push({
+      code: 'CABLE-DROP-AC',
+      severity: 'warning',
+      standard: 'IEC 60364',
+      message: `AC output cable (${cables.acOutput.crossSectionMm2} mm²) voltage drop of ${cables.acOutput.voltageDropPercent.toFixed(2)}% exceeds the ${input.acVoltageDropPercent ?? DEFAULT_AC_VOLTAGE_DROP_PCT}% limit.`,
     });
   }
 

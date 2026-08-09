@@ -200,6 +200,10 @@ export interface SystemInput {
     inverter?: InverterSpec;
     battery?: BatterySpec;
     controller?: ChargeControllerSpec;
+    /** Catalog cables per circuit; the engine auto-sizes when absent. */
+    pvCable?: CableSpec;
+    dcCable?: CableSpec;
+    acCable?: CableSpec;
   };
 }
 
@@ -282,6 +286,10 @@ export interface CableSelection {
   voltageDropPercent: number;
   ampacityA: number;
   ampacityPasses: boolean;
+  /** False when the voltage drop of a chosen cable exceeds the design limit. */
+  dropWithinLimit: boolean;
+  /** True when the result came from a user-selected catalog cable. */
+  fromCatalog?: boolean;
 }
 
 export interface CableResult {

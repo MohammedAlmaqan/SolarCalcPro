@@ -139,4 +139,16 @@ describe('estimateCost — price book defaults', () => {
     expect(book.bosPct).toBeGreaterThan(0);
     expect(book.laborPct).toBeGreaterThan(0);
   });
+
+  it('tags every line with a category for the costed BOM', () => {
+    const estimate = estimateFor(HYBRID_INPUT);
+    expect(estimate.lines.length).toBeGreaterThan(0);
+    for (const item of estimate.lines) {
+      expect(item.category).toBeTruthy();
+    }
+    const pvLine = estimate.lines.find((l) => l.id === 'pv-modules');
+    expect(pvLine?.category).toBe('PV modules');
+    const cableLine = estimate.lines.find((l) => l.id === 'cable-pv');
+    expect(cableLine?.category).toBe('Cables');
+  });
 });

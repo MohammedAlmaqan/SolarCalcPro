@@ -19,7 +19,7 @@ function esc(value: string | number): string {
 }
 
 /** Render a simplified single-line flow as an HTML table (print-safe). */
-function sldHtml(result: DesignResult): string {
+export function renderSldHtml(result: DesignResult): string {
   const { input, protection } = result;
   const isOnGrid = input.systemType === 'on-grid';
   const isOffGrid = input.systemType === 'off-grid';
@@ -157,7 +157,7 @@ export function buildPdfHtml(data: PdfReportData): string {
   </div>
 
   <h2>2. Single-line diagram</h2>
-  ${sldHtml(result)}
+  ${renderSldHtml(result)}
 
   <h2>3. Load audit</h2>
   <table>

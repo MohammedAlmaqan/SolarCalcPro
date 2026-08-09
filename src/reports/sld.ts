@@ -1,3 +1,4 @@
+import { REFERENCE_PANEL } from '../core/data/referenceComponents';
 import type { DesignResult } from '../core/types';
 
 export type SldNodeType = 'source' | 'protection' | 'converter' | 'storage' | 'load' | 'grid';
@@ -7,6 +8,11 @@ export interface SldNode {
   type: SldNodeType;
   label: string;
   sublabel: string;
+  /** Extra specifications shown when a node is tapped. */
+  detail: string[];
+  /** True when the node fails a compliance check. */
+  flagged?: boolean;
+  flaggedReason?: string;
   x: number;
   y: number;
 }
@@ -33,13 +39,15 @@ const BRANCH_Y = 236;
 
 /** Build a single-line diagram layout from a completed design. Pure TS. */
 export function buildSldDiagram(result: DesignResult): SldDiagram {
-  const { input, pv, inverter, controller, protection, dailyLoad } = result;
+  const { input, pv, inverter, controller, protection, compliance, dailyLoad } = result;
   const isOnGrid = input.systemType === 'on-grid';
   const isOffGrid = input.systemType === 'off-grid';
+  const panel = input.selected?.panel ?? REFERENCE_PANEL;
+  const hasBatteryDischargeIssue = result.warnings.some((w) => w.code === 'BATTERY-DISCHARGE');
 
   const chain: SldNode[] = [];
   const edges: SldEdge[] = [];
-  const batteryNode = isOnGrid ? null : createBatteryNode(result);
+  const batteryNode = isOnGrid ? null : createBatteryNode(result, hasBatteryDischargeIssue);
 
   // 1. PV array source
   chain.push({
@@ -47,6 +55,16 @@ export function buildSldDiagram(result: DesignResult): SldDiagram {
     type: 'source',
     label: 'PV array',
     sublabel: `${pv.seriesCount}S × ${pv.parallelCount}P · ${pv.actualArrayWatts} W`,
+    detail: [
+      `${pv.actualArrayWatts} W total array`,
+      `String ${pv.seriesCount}S × ${pv.parallelCount}P`,
+      `Vmp ${pv.arrayVmpV} V · Voc ${pv.arrayVocV} V`,
+      `Isc ${pv.arrayIscA} A · Imp ${pv.arrayImpA} A`,
+    ],
+    flagged: !compliance.arrayVocWithinInverterLimit || !pv.fitsInverterLimits,
+    flaggedReason: !compliance.arrayVocWithinInverterLimit
+      ? 'Cold array Voc exceeds the MPPT maximum voltage limit.'
+      : 'String configuration could not fit within MPPT limits.',
     x: 0,
     y: CHAIN_Y,
   });
@@ -57,6 +75,12 @@ export function buildSldDiagram(result: DesignResult): SldDiagram {
     type: 'protection',
     label: 'PV OCPD',
     sublabel: `${protection.pvSourceOcpdStandardA} A`,
+    detail: [
+      `OCPD rating ${protection.pvSourceOcpdStandardA} A`,
+      `Panel max series fuse ${panel.maxSeriesFuseRating} A`,
+    ],
+    flagged: !compliance.pvOcpdWithinSeriesFuse,
+    flaggedReason: 'OCPD rating exceeds the panel maximum series fuse rating.',
     x: 0,
     y: CHAIN_Y,
   });
@@ -68,6 +92,7 @@ export function buildSldDiagram(result: DesignResult): SldDiagram {
     type: 'protection',
     label: 'DC isolator',
     sublabel: protection.dcIsolatorRequired ? 'required' : 'optional',
+    detail: ['DC isolating switch for maintenance and emergency disconnection.'],
     x: 0,
     y: CHAIN_Y,
   });
@@ -80,6 +105,13 @@ export function buildSldDiagram(result: DesignResult): SldDiagram {
       type: 'converter',
       label: 'Charge controller',
       sublabel: `${controller.recommendedType} · ${controller.selectedCurrentA ?? controller.minCurrentA} A`,
+      detail: [
+        `${controller.recommendedType} controller`,
+        `Rated ${controller.selectedCurrentA ?? controller.minCurrentA} A`,
+        `Required ${controller.minCurrentA} A · max PV ${controller.maxPvVoltageRequiredV} V`,
+      ],
+      flagged: !compliance.controllerCurrentWithinLimit,
+      flaggedReason: 'Array short-circuit current exceeds the controller rating.',
       x: 0,
       y: CHAIN_Y,
     });
@@ -92,6 +124,7 @@ export function buildSldDiagram(result: DesignResult): SldDiagram {
     type: 'protection',
     label: 'SPD',
     sublabel: protection.spdType,
+    detail: [`${protection.spdType} surge protection device.`],
     x: 0,
     y: CHAIN_Y,
   });
@@ -102,13 +135,20 @@ export function buildSldDiagram(result: DesignResult): SldDiagram {
   });
 
   // 6. Inverter
-  const inverterLabel = isOnGrid ? 'Grid inverter' : 'Inverter';
-  const inverterSublabel = `${inverter.selectedContinuousWatts ?? inverter.recommendedContinuousWatts} W · ${inverter.recommendedType}`;
   chain.push({
     id: 'inverter',
     type: 'converter',
-    label: inverterLabel,
-    sublabel: inverterSublabel,
+    label: isOnGrid ? 'Grid inverter' : 'Inverter',
+    sublabel: `${inverter.selectedContinuousWatts ?? inverter.recommendedContinuousWatts} W · ${inverter.recommendedType}`,
+    detail: [
+      `Continuous ${inverter.selectedContinuousWatts ?? inverter.recommendedContinuousWatts} W`,
+      `Surge ${inverter.recommendedSurgeWatts} W`,
+      `Recommended ${inverter.recommendedType} · ${inverter.recommendedBatteryVoltageV ?? 'grid-tie'} V DC input`,
+    ],
+    flagged: !compliance.inverterPowerSufficient || !inverter.voltageMatch,
+    flaggedReason: !compliance.inverterPowerSufficient
+      ? 'Selected inverter continuous power is below the required rating.'
+      : 'Inverter battery voltage does not match the system voltage.',
     x: 0,
     y: CHAIN_Y,
   });
@@ -120,6 +160,13 @@ export function buildSldDiagram(result: DesignResult): SldDiagram {
     type: 'protection',
     label: 'AC breaker',
     sublabel: `${protection.acBreakerStandardA} A`,
+    detail: [
+      `Breaker ${protection.acBreakerStandardA} A`,
+      `Backfeed rule (120%): ${protection.backfeedPasses ? 'passes' : 'fails'}`,
+      `Busbar ${input.busbarRatingA ?? 200} A`,
+    ],
+    flagged: !protection.backfeedPasses,
+    flaggedReason: 'AC backfeed exceeds the main panel 120% busbar rule.',
     x: 0,
     y: CHAIN_Y,
   });
@@ -132,6 +179,7 @@ export function buildSldDiagram(result: DesignResult): SldDiagram {
       type: 'protection',
       label: 'AC isolator',
       sublabel: `${protection.acBreakerStandardA} A`,
+      detail: ['AC isolating disconnect for the inverter output.'],
       x: 0,
       y: CHAIN_Y,
     });
@@ -144,6 +192,11 @@ export function buildSldDiagram(result: DesignResult): SldDiagram {
     type: 'load',
     label: 'Main panel / loads',
     sublabel: `${dailyLoad.peakSimultaneousWatts} W peak`,
+    detail: [
+      `Peak simultaneous ${dailyLoad.peakSimultaneousWatts} W`,
+      `Peak surge ${dailyLoad.peakSurgeWatts} W`,
+      `Daily energy ${dailyLoad.totalWhPerDay} Wh/day`,
+    ],
     x: 0,
     y: CHAIN_Y,
   });
@@ -161,6 +214,7 @@ export function buildSldDiagram(result: DesignResult): SldDiagram {
         type: 'protection',
         label: 'ATS',
         sublabel: '< 20 ms transfer',
+        detail: ['Automatic transfer switch for grid/backup changeover (< 20 ms).'],
         x: 0,
         y: CHAIN_Y,
       });
@@ -171,6 +225,7 @@ export function buildSldDiagram(result: DesignResult): SldDiagram {
       type: 'grid',
       label: 'Grid',
       sublabel: 'connection',
+      detail: ['Grid interconnection point (net-metered).'],
       x: 0,
       y: CHAIN_Y,
     });
@@ -211,13 +266,21 @@ export function buildSldDiagram(result: DesignResult): SldDiagram {
   };
 }
 
-function createBatteryNode(result: DesignResult): SldNode {
+function createBatteryNode(result: DesignResult, hasDischargeIssue: boolean): SldNode {
   const { battery } = result;
   return {
     id: 'battery',
     type: 'storage',
     label: 'Battery bank',
     sublabel: `${battery.batteryCount} cells · ${battery.actualCapacityAh} Ah @ ${battery.systemVoltageV} V`,
+    detail: [
+      `${battery.batteryCount} cells · ${battery.seriesCount}S × ${battery.parallelCount}P`,
+      `${battery.actualCapacityAh} Ah · ${battery.actualCapacityKwh} kWh`,
+      `DoD ${Math.round(battery.depthOfDischarge * 100)}%`,
+      `Required ${battery.requiredKwh} kWh`,
+    ],
+    flagged: hasDischargeIssue,
+    flaggedReason: 'Battery bank max discharge current may be below the inverter DC input current.',
     x: 0,
     y: BRANCH_Y,
   };

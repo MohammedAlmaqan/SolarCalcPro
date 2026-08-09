@@ -20,18 +20,20 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { ScenarioRecord } from '@/db/repos/projects';
+import { estimateCost } from '@/core/formulas/costing';
 import { buildBom } from '@/reports/bom';
 import { compareScenarios } from '@/reports/comparison';
 import { bomToCsv } from '@/reports/csv';
 import { exportProject, parseProjectImport } from '@/reports/jsonIO';
 import { buildPdfHtml } from '@/reports/pdfTemplate';
+import { buildProposalPdfHtml } from '@/reports/proposal';
 import { buildSldDiagram } from '@/reports/sld';
 import { useProjectStore } from '@/store/projects';
 
 import { SldView } from '../../components/SldView';
 import { StatCard, WarningsList } from '../../components/results';
 import { useUnitFormatters } from '../../hooks/useUnitFormatters';
-import { useSettingsStore } from '../../store/settings';
+import { CURRENCY_SYMBOLS, useSettingsStore } from '../../store/settings';
 
 function slugify(text: string): string {
   return (
@@ -59,6 +61,9 @@ export default function ReportsScreen() {
   const [importDialog, setImportDialog] = useState(false);
   const f = useUnitFormatters();
   const units = useSettingsStore((s) => s.units);
+  const electricRate = useSettingsStore((s) => s.electricRate);
+  const currency = useSettingsStore((s) => s.currency);
+  const companyProfile = useSettingsStore((s) => s.companyProfile);
 
   useFocusEffect(
     useCallback(() => {
@@ -110,6 +115,47 @@ export default function ReportsScreen() {
       notify('PDF exported');
     } catch (e) {
       notify('PDF export failed');
+      console.error(e);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const exportProposal = async () => {
+    if (!project || !scenario || !result) return;
+    setBusy(true);
+    try {
+      const today = new Date();
+      const validUntil = new Date(today.getTime() + 30 * 86400000);
+      const datePart = today.toISOString().slice(0, 10);
+      const cost = estimateCost(result, {
+        electricRate,
+        currency: CURRENCY_SYMBOLS[currency],
+      });
+      const html = buildProposalPdfHtml({
+        projectName: project.name,
+        clientName: project.clientName,
+        notes: project.notes,
+        quoteNumber: `Q-${datePart}-${slugify(project.name).slice(0, 8)}`,
+        issueDate: today.toLocaleDateString(),
+        validUntil: validUntil.toLocaleDateString(),
+        validityDays: 30,
+        scenario,
+        result,
+        cost,
+        profile: companyProfile,
+        units,
+      });
+      const { uri } = await Print.printToFileAsync({ html });
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri, {
+          mimeType: 'application/pdf',
+          dialogTitle: 'Share proposal PDF',
+        });
+      }
+      notify('Proposal PDF exported');
+    } catch (e) {
+      notify('Proposal export failed');
       console.error(e);
     } finally {
       setBusy(false);
@@ -308,12 +354,21 @@ export default function ReportsScreen() {
                   <Card.Content style={styles.exportGrid}>
                     <Button
                       mode="contained"
+                      icon="file-document-check-outline"
+                      loading={busy}
+                      disabled={busy}
+                      onPress={exportProposal}
+                    >
+                      Proposal PDF
+                    </Button>
+                    <Button
+                      mode="outlined"
                       icon="file-pdf-box"
                       loading={busy}
                       disabled={busy}
                       onPress={exportPdf}
                     >
-                      PDF report
+                      Design summary
                     </Button>
                     <Button
                       mode="outlined"

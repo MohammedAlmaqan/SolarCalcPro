@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { Text, useTheme } from 'react-native-paper';
+import { Button, Dialog, Portal, Text, useTheme } from 'react-native-paper';
 import Svg, { G, Line, Path, Rect, Text as SvgText } from 'react-native-svg';
 
 import type { SldDiagram, SldNode } from '@/reports/sld';
@@ -17,12 +18,30 @@ const typeColors: Record<SldNode['type'], string> = {
   grid: '#6F7C84',
 };
 
-function NodeBox(props: { node: SldNode }) {
-  const { node } = props;
+function NodeBox(props: { node: SldNode; onPress: () => void }) {
+  const { node, onPress } = props;
   const fill = typeColors[node.type];
   return (
-    <G>
+    <G onPress={onPress}>
+      {node.flagged ? (
+        <Rect
+          x={node.x - 3}
+          y={node.y - 3}
+          width={NODE_W + 6}
+          height={NODE_H + 6}
+          rx={R + 3}
+          ry={R + 3}
+          stroke="#B3261E"
+          strokeWidth={2.5}
+          fill="none"
+        />
+      ) : null}
       <Rect x={node.x} y={node.y} width={NODE_W} height={NODE_H} rx={R} ry={R} fill={fill} />
+      {node.flagged ? (
+        <SvgText x={node.x + NODE_W - 10} y={node.y + 14} fontSize={13} fill="#FFFFFF" textAnchor="middle">
+          ⚠
+        </SvgText>
+      ) : null}
       <SvgText
         x={node.x + NODE_W / 2}
         y={node.y + 25}
@@ -49,6 +68,7 @@ function NodeBox(props: { node: SldNode }) {
 export function SldView(props: { diagram: SldDiagram }) {
   const { diagram } = props;
   const theme = useTheme();
+  const [selected, setSelected] = useState<SldNode | null>(null);
 
   const midY = (a: SldNode, b: SldNode) => Math.max(a.y, b.y) + NODE_H / 2;
   const isBranch = (a: SldNode, b: SldNode) => a.y !== b.y;
@@ -94,14 +114,38 @@ export function SldView(props: { diagram: SldDiagram }) {
               );
             })}
             {diagram.nodes.map((node) => (
-              <NodeBox key={node.id} node={node} />
+              <NodeBox key={node.id} node={node} onPress={() => setSelected(node)} />
             ))}
           </Svg>
         </ScrollView>
       </ScrollView>
       <Text variant="bodySmall" style={[styles.hint, { color: theme.colors.onSurfaceVariant }]}>
-        Scroll the diagram horizontally · dashed line = DC battery branch
+        Tap a component for details · dashed line = DC battery branch · red border = compliance issue
       </Text>
+
+      <Portal>
+        <Dialog visible={selected !== null} onDismiss={() => setSelected(null)}>
+          <Dialog.Title>
+            {selected?.label}
+            {selected?.flagged ? ' ⚠' : ''}
+          </Dialog.Title>
+          <Dialog.Content>
+            {selected?.flagged && selected.flaggedReason ? (
+              <Text variant="bodySmall" style={{ color: theme.colors.error, marginBottom: 8 }}>
+                {selected.flaggedReason}
+              </Text>
+            ) : null}
+            {(selected?.detail ?? []).map((detail) => (
+              <Text key={detail} variant="bodyMedium" style={styles.detailRow}>
+                • {detail}
+              </Text>
+            ))}
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setSelected(null)}>Close</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </View>
   );
 }
@@ -114,5 +158,8 @@ const styles = StyleSheet.create({
   hint: {
     marginTop: 6,
     textAlign: 'center',
+  },
+  detailRow: {
+    marginVertical: 2,
   },
 });

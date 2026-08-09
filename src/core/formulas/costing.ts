@@ -42,6 +42,7 @@ export const DEFAULT_PRICE_BOOK: PriceBook = {
 
 export interface CostLineItem {
   id: string;
+  category: string;
   label: string;
   quantity: number;
   unit: string;
@@ -69,12 +70,13 @@ const money = (value: number): number => Math.round(value * 100) / 100;
 
 function line(
   id: string,
+  category: string,
   label: string,
   quantity: number,
   unit: string,
   unitPrice: number,
 ): CostLineItem {
-  return { id, label, quantity, unit, unitPrice, total: money(quantity * unitPrice) };
+  return { id, category, label, quantity, unit, unitPrice, total: money(quantity * unitPrice) };
 }
 
 /**
@@ -108,6 +110,7 @@ export function estimateCost(
       line(
         'pv-modules',
         'PV modules',
+        'PV modules',
         pv.totalPanelCount,
         'pcs',
         money(wattsPerPanel * book.panelDollarsPerWatt),
@@ -119,6 +122,7 @@ export function estimateCost(
   lines.push(
     line(
       'inverter',
+      'Inverter',
       'Inverter',
       1,
       'pcs',
@@ -132,6 +136,7 @@ export function estimateCost(
       line(
         'batteries',
         'Battery bank',
+        'Battery bank',
         battery.batteryCount,
         'pcs',
         money(kwhPerBattery * book.batteryDollarsPerKwh[input.chemistry]),
@@ -142,7 +147,7 @@ export function estimateCost(
   if (input.systemType === 'off-grid' && controller.minCurrentA > 0) {
     const unit =
       controller.recommendedType === 'MPPT' ? book.controllerMpptFixed : book.controllerPwmFixed;
-    lines.push(line('controller', 'Charge controller', 1, 'pcs', money(unit)));
+    lines.push(line('controller', 'Charge controller', 'Charge controller', 1, 'pcs', money(unit)));
   }
 
   const cableLine = (
@@ -152,30 +157,17 @@ export function estimateCost(
     crossSectionMm2: number,
   ): void => {
     const unitPrice = money(crossSectionMm2 * book.cableDollarsPerMeterPerMm2);
-    lines.push(line(id, label, money(2 * oneWayMeters), 'm', unitPrice));
+    lines.push(line(id, 'Cables', label, money(2 * oneWayMeters), 'm', unitPrice));
   };
-  cableLine(
-    'cable-pv',
-    'PV source cable',
-    input.pvCableLengthM ?? 10,
-    cables.pvSource.crossSectionMm2,
-  );
+  cableLine('cable-pv', 'PV source cable', input.pvCableLengthM ?? 10, cables.pvSource.crossSectionMm2);
   if (!isOnGrid) {
-    cableLine(
-      'cable-dc',
-      'DC output cable',
-      input.dcCableLengthM ?? 2,
-      cables.dcOutput.crossSectionMm2,
-    );
+    cableLine('cable-dc', 'DC output cable', input.dcCableLengthM ?? 2, cables.dcOutput.crossSectionMm2);
   }
-  cableLine(
-    'cable-ac',
-    'AC output cable',
-    input.acCableLengthM ?? 10,
-    cables.acOutput.crossSectionMm2,
-  );
+  cableLine('cable-ac', 'AC output cable', input.acCableLengthM ?? 10, cables.acOutput.crossSectionMm2);
 
-  lines.push(line('protection', 'Protection & disconnects', 1, 'kit', money(book.protectionFixed)));
+  lines.push(
+    line('protection', 'Protection', 'Protection & disconnects', 1, 'kit', money(book.protectionFixed)),
+  );
 
   const equipmentSubtotal = money(lines.reduce((sum, item) => sum + item.total, 0));
   const bosTotal = money(equipmentSubtotal * book.bosPct);

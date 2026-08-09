@@ -22,6 +22,26 @@ const WIZARD_KEY = 'ui.wizard_mode';
 const STANDARDS_KEY = 'ui.standards_policy';
 const ELECTRIC_RATE_KEY = 'ui.electric_rate';
 const CURRENCY_KEY = 'ui.currency';
+const COMPANY_PROFILE_KEY = 'ui.company_profile';
+
+/** Installer branding shown on proposal documents. */
+export interface CompanyProfile {
+  companyName: string;
+  tagline: string;
+  engineerName: string;
+  phone: string;
+  email: string;
+  address: string;
+}
+
+export const DEFAULT_COMPANY_PROFILE: CompanyProfile = {
+  companyName: 'SlorCalcPro',
+  tagline: 'Offline solar system design & engineering',
+  engineerName: '',
+  phone: '',
+  email: '',
+  address: '',
+};
 
 export const CURRENCY_SYMBOLS: Record<CurrencyCode, string> = {
   USD: '$',
@@ -91,6 +111,7 @@ interface SettingsState {
   /** Grid electric rate used for payback estimates (currency/kWh). */
   electricRate: number;
   currency: CurrencyCode;
+  companyProfile: CompanyProfile;
 
   load: () => Promise<void>;
   setThemeMode: (mode: ThemeMode) => Promise<void>;
@@ -100,6 +121,7 @@ interface SettingsState {
   setStandardsPolicy: (policy: StandardsPolicy) => Promise<void>;
   setElectricRate: (rate: number) => Promise<void>;
   setCurrency: (currency: CurrencyCode) => Promise<void>;
+  setCompanyProfile: (patch: Partial<CompanyProfile>) => Promise<void>;
 }
 
 function isCurrencyCode(v: string | null): v is CurrencyCode {
@@ -115,6 +137,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   standardsPolicy: 'strict',
   electricRate: 0.15,
   currency: 'USD',
+  companyProfile: DEFAULT_COMPANY_PROFILE,
 
   load: async () => {
     const repo = settingsRepo(getDbService());
@@ -129,6 +152,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       standards,
       electricRate,
       currency,
+      companyProfile,
     ] = await Promise.all([
       repo.get(THEME_KEY),
       repo.get(POWER_KEY),
@@ -140,6 +164,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       repo.get(STANDARDS_KEY),
       repo.getNumber(ELECTRIC_RATE_KEY),
       repo.get(CURRENCY_KEY),
+      repo.get(COMPANY_PROFILE_KEY),
     ]);
     set({
       loaded: true,
@@ -155,6 +180,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       standardsPolicy: isStandardsPolicy(standards) ? standards : 'strict',
       electricRate: electricRate ?? 0.15,
       currency: isCurrencyCode(currency) ? currency : 'USD',
+      companyProfile: companyProfile
+        ? { ...DEFAULT_COMPANY_PROFILE, ...JSON.parse(companyProfile) }
+        : DEFAULT_COMPANY_PROFILE,
     });
   },
 
@@ -200,5 +228,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   setCurrency: async (currency) => {
     await settingsRepo(getDbService()).set(CURRENCY_KEY, currency);
     set({ currency });
+  },
+
+  setCompanyProfile: async (patch) => {
+    const next = { ...get().companyProfile, ...patch };
+    await settingsRepo(getDbService()).set(COMPANY_PROFILE_KEY, JSON.stringify(next));
+    set({ companyProfile: next });
   },
 }));

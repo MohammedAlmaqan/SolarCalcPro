@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
-import { Appbar, Card, Divider, List, Text, useTheme } from 'react-native-paper';
+import { Appbar, Card, Divider, List, Text, TextInput, useTheme } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { SegmentedField, NumberField } from '@/components/form';
@@ -115,6 +115,58 @@ export default function SettingsScreen() {
         </Card>
 
         <Card mode="outlined">
+          <Card.Title title="Company profile" titleVariant="titleMedium" />
+          <Divider />
+          <Card.Content>
+            <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginBottom: 8 }}>
+              Branding shown on proposal PDF exports.
+            </Text>
+            <TextInput
+              mode="outlined"
+              label="Company name"
+              value={settings.companyProfile.companyName}
+              onChangeText={(v) => settings.setCompanyProfile({ companyName: v })}
+              style={styles.input}
+            />
+            <TextInput
+              mode="outlined"
+              label="Tagline"
+              value={settings.companyProfile.tagline}
+              onChangeText={(v) => settings.setCompanyProfile({ tagline: v })}
+              style={styles.input}
+            />
+            <TextInput
+              mode="outlined"
+              label="Engineer / prepared by"
+              value={settings.companyProfile.engineerName}
+              onChangeText={(v) => settings.setCompanyProfile({ engineerName: v })}
+              style={styles.input}
+            />
+            <TextInput
+              mode="outlined"
+              label="Phone"
+              value={settings.companyProfile.phone}
+              onChangeText={(v) => settings.setCompanyProfile({ phone: v })}
+              style={styles.input}
+            />
+            <TextInput
+              mode="outlined"
+              label="Email"
+              value={settings.companyProfile.email}
+              onChangeText={(v) => settings.setCompanyProfile({ email: v })}
+              style={styles.input}
+            />
+            <TextInput
+              mode="outlined"
+              label="Address"
+              value={settings.companyProfile.address}
+              onChangeText={(v) => settings.setCompanyProfile({ address: v })}
+              style={styles.input}
+            />
+          </Card.Content>
+        </Card>
+
+        <Card mode="outlined">
           <Card.Title title="Cost & payback" titleVariant="titleMedium" />
           <Divider />
           <Card.Content>
@@ -183,5 +235,8 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     gap: 16,
+  },
+  input: {
+    marginBottom: 8,
   },
 });

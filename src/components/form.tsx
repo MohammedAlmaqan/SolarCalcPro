@@ -20,10 +20,26 @@ export function NumberField(props: {
   error?: boolean;
   disabled?: boolean;
   decimals?: number;
+  /** Inclusive lower bound; out-of-range values are clamped. */
+  min?: number;
+  /** Inclusive upper bound; out-of-range values are clamped. */
+  max?: number;
 }) {
-  const { label, value, onChange, unit, helperText, error, disabled, decimals = 2 } = props;
+  const {
+    label,
+    value,
+    onChange,
+    unit,
+    helperText,
+    error,
+    disabled,
+    decimals = 2,
+    min,
+    max,
+  } = props;
   const [text, setText] = useState(value === null ? '' : String(value));
   const [focused, setFocused] = useState(false);
+  const [clamped, setClamped] = useState(false);
 
   const display = focused ? text : value === null ? '' : String(value);
 
@@ -31,15 +47,32 @@ export function NumberField(props: {
     setText(raw);
     const cleaned = raw.replace(',', '.').trim();
     if (cleaned === '') {
+      setClamped(false);
       onChange(null);
       return;
     }
     const parsed = Number(cleaned);
     if (!Number.isNaN(parsed)) {
+      let result = parsed;
+      let wasClamped = false;
+      if (min !== undefined && result < min) {
+        result = min;
+        wasClamped = true;
+      }
+      if (max !== undefined && result > max) {
+        result = max;
+        wasClamped = true;
+      }
       const factor = 10 ** decimals;
-      onChange(Math.round(parsed * factor) / factor);
+      setClamped(wasClamped);
+      onChange(Math.round(result * factor) / factor);
     }
   };
+
+  const showError = error || clamped;
+  const effectiveHelper = clamped
+    ? `${label} is limited to ${min ?? '—'}–${max ?? '—'} ${unit ?? ''}`.trim()
+    : helperText;
 
   return (
     <View style={styles.field}>
@@ -56,11 +89,13 @@ export function NumberField(props: {
         }}
         keyboardType="numeric"
         disabled={disabled}
-        error={error}
+        error={showError}
         right={unit ? <TextInput.Affix text={unit} /> : undefined}
         dense
       />
-      {helperText ? <HelperText type={error ? 'error' : 'info'}>{helperText}</HelperText> : null}
+      {effectiveHelper ? (
+        <HelperText type={showError ? 'error' : 'info'}>{effectiveHelper}</HelperText>
+      ) : null}
     </View>
   );
 }
@@ -115,33 +150,6 @@ export function SegmentedField(props: {
         value={value}
         onValueChange={onChange}
         buttons={options.map((o) => ({ value: o.value, label: o.label, disabled }))}
-        density="small"
-      />
-    </View>
-  );
-}
-
-/** Binary toggle (yes/no) rendered as a compact segmented control. */
-export function ToggleField(props: {
-  label: string;
-  value: boolean;
-  onChange: (value: boolean) => void;
-  disabled?: boolean;
-  icon?: string;
-}) {
-  const { label, value, onChange, disabled, icon } = props;
-  return (
-    <View style={[styles.field, disabled && styles.disabled]}>
-      <Text variant="labelLarge" style={styles.label}>
-        {label}
-      </Text>
-      <SegmentedButtons
-        value={value ? 'yes' : 'no'}
-        onValueChange={(v) => onChange(v === 'yes')}
-        buttons={[
-          { value: 'yes', label: 'Yes', icon, disabled },
-          { value: 'no', label: 'No', disabled },
-        ]}
         density="small"
       />
     </View>

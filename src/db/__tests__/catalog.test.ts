@@ -1,4 +1,5 @@
 import { catalogRepo } from '../repos/catalog';
+import { projectRepo } from '../repos/projects';
 import { openTestDb } from './helpers/testDb';
 
 describe('catalogRepo', () => {
@@ -72,5 +73,40 @@ describe('catalogRepo', () => {
     const repo = catalogRepo(db);
     expect(await repo.count('battery')).toBeGreaterThan(10);
     expect(await repo.count()).toBeGreaterThan(80);
+  });
+
+  it('reports scenario usage so in-use components cannot be silently orphaned', async () => {
+    const db = await openTestDb();
+    const repo = catalogRepo(db);
+
+    const id = 'panel-ref-mono-550';
+    expect(await repo.usageCount('panel', id)).toBe(0);
+
+    const projects = projectRepo(db);
+    const project = await projects.createProject({
+      name: 'Usage guard',
+      scenario: {
+        name: 'Base design',
+        systemType: 'off-grid',
+        loads: [
+          {
+            id: 'l1',
+            name: 'Lamp',
+            quantity: 1,
+            powerWatts: 10,
+            hoursPerDay: 2,
+            isAc: true,
+            isSimultaneous: false,
+            isInductive: false,
+          },
+        ],
+      },
+    });
+    const scenarioId = project.scenarios[0].id;
+    await projects.updateScenario(scenarioId, { selectedPanelId: id });
+
+    expect(await repo.usageCount('panel', id)).toBe(1);
+    expect(await repo.usageCount('inverter', id)).toBe(0);
+    expect(await repo.usageCount('cable', id)).toBe(0);
   });
 });

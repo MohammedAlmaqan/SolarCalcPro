@@ -70,6 +70,8 @@ export interface CatalogRepo {
   setFavorite(id: string, favorite: boolean): Promise<void>;
   listFavorites(): Promise<ComponentRecord<AnySpec>[]>;
   count(kind?: ComponentKind): Promise<number>;
+  /** Number of scenarios that reference this component as selected hardware. */
+  usageCount(kind: ComponentKind, id: string): Promise<number>;
 }
 
 export function catalogRepo(db: DatabaseLike): CatalogRepo {
@@ -161,5 +163,21 @@ export function catalogRepo(db: DatabaseLike): CatalogRepo {
       );
       return row?.n ?? 0;
     },
+    usageCount: async (kind, id) => {
+      const column = SELECTED_COLUMN_BY_KIND[kind];
+      if (!column) return 0;
+      const row = await db.getFirstAsync<{ n: number }>(
+        `SELECT COUNT(*) AS n FROM scenarios WHERE ${column} = ?`,
+        [id],
+      );
+      return row?.n ?? 0;
+    },
   };
 }
+
+const SELECTED_COLUMN_BY_KIND: Partial<Record<ComponentKind, string>> = {
+  panel: 'selected_panel_id',
+  inverter: 'selected_inverter_id',
+  battery: 'selected_battery_id',
+  controller: 'selected_controller_id',
+};

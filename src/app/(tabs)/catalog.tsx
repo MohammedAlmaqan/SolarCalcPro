@@ -4,6 +4,7 @@ import {
   Appbar,
   Button,
   Card,
+  Chip,
   Dialog,
   FAB,
   IconButton,
@@ -40,12 +41,18 @@ export default function CatalogScreen() {
 
   const [kind, setKind] = useState<ComponentKind>('panel');
   const [query, setQuery] = useState('');
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [editing, setEditing] = useState<ComponentRecord<AnySpec> | null>(null);
   const [adding, setAdding] = useState(false);
   const [deleting, setDeleting] = useState<ComponentRecord<AnySpec> | null>(null);
+  const [deleteBlocked, setDeleteBlocked] = useState<{
+    item: ComponentRecord<AnySpec>;
+    usage: number;
+  } | null>(null);
   const [saving, setSaving] = useState(false);
 
   const items = lists[kind] ?? [];
+  const visibleItems = favoritesOnly ? items.filter((item) => item.isFavorite) : items;
 
   useEffect(() => {
     const q = query.trim();
@@ -78,6 +85,21 @@ export default function CatalogScreen() {
     [editing, kind, loadKind],
   );
 
+  const onDeleteRequest = async (item: ComponentRecord<AnySpec>) => {
+    try {
+      const { catalogRepo } = await import('@/db/repos/catalog');
+      const { getDbService } = await import('@/store/dbService');
+      const usage = await catalogRepo(getDbService()).usageCount(kind, item.id);
+      if (usage > 0) {
+        setDeleteBlocked({ item, usage });
+      } else {
+        setDeleting(item);
+      }
+    } catch {
+      setDeleting(item);
+    }
+  };
+
   const confirmDelete = async () => {
     if (!deleting) return;
     await remove(kind, deleting.id);
@@ -109,8 +131,18 @@ export default function CatalogScreen() {
         style={styles.search}
       />
 
+      <View style={styles.filters}>
+        <Chip
+          icon={favoritesOnly ? 'star' : 'star-outline'}
+          selected={favoritesOnly}
+          onPress={() => setFavoritesOnly((v) => !v)}
+        >
+          Favorites
+        </Chip>
+      </View>
+
       <FlatList
-        data={items}
+        data={visibleItems}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         renderItem={({ item }) => (
@@ -138,7 +170,7 @@ export default function CatalogScreen() {
                   <IconButton
                     icon="delete-outline"
                     iconColor={theme.colors.error}
-                    onPress={() => setDeleting(item)}
+                    onPress={() => onDeleteRequest(item)}
                     accessibilityLabel="Delete component"
                   />
                 </View>
@@ -148,7 +180,9 @@ export default function CatalogScreen() {
         )}
         ListEmptyComponent={
           <Text variant="bodyMedium" style={styles.empty}>
-            No components. Add one with the button below.
+            {favoritesOnly
+              ? 'No favorites yet. Tap the star on a component to pin it here.'
+              : 'No components. Add one with the button below.'}
           </Text>
         }
       />
@@ -191,6 +225,20 @@ export default function CatalogScreen() {
             </Button>
           </Dialog.Actions>
         </Dialog>
+
+        <Dialog visible={deleteBlocked !== null} onDismiss={() => setDeleteBlocked(null)}>
+          <Dialog.Title>In use</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium">
+              &ldquo;{deleteBlocked?.item.brand} {deleteBlocked?.item.model}&rdquo; is selected in{' '}
+              {deleteBlocked?.usage} design scenario{deleteBlocked?.usage === 1 ? '' : 's'}. Remove
+              it from those scenarios first, or edit it instead of deleting.
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setDeleteBlocked(null)}>OK</Button>
+          </Dialog.Actions>
+        </Dialog>
       </Portal>
     </SafeAreaView>
   );
@@ -206,6 +254,11 @@ const styles = StyleSheet.create({
   },
   search: {
     margin: 16,
+    marginBottom: 8,
+  },
+  filters: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
     marginBottom: 8,
   },
   list: {

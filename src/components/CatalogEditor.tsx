@@ -17,23 +17,34 @@ interface FieldDef {
   type: 'number' | 'enum' | 'text';
   options?: string[];
   decimals?: number;
+  min?: number;
+  max?: number;
 }
 
 const FIELD_DEFS: Record<ComponentKind, FieldDef[]> = {
   panel: [
-    { key: 'pmaxW', label: 'Max power', unit: 'W', type: 'number', decimals: 0 },
-    { key: 'vocV', label: 'Open-circuit voltage', unit: 'V', type: 'number' },
-    { key: 'vmpV', label: 'MPP voltage', unit: 'V', type: 'number' },
-    { key: 'iscA', label: 'Short-circuit current', unit: 'A', type: 'number' },
-    { key: 'impA', label: 'MPP current', unit: 'A', type: 'number' },
-    { key: 'tempCoeffPmax', label: 'Pmax temp coeff', unit: '%/°C', type: 'number' },
-    { key: 'tempCoeffVoc', label: 'Voc temp coeff', unit: '%/°C', type: 'number' },
+    { key: 'pmaxW', label: 'Max power', unit: 'W', type: 'number', decimals: 0, min: 1, max: 2000 },
+    { key: 'vocV', label: 'Open-circuit voltage', unit: 'V', type: 'number', min: 1, max: 2000 },
+    { key: 'vmpV', label: 'MPP voltage', unit: 'V', type: 'number', min: 1, max: 2000 },
+    { key: 'iscA', label: 'Short-circuit current', unit: 'A', type: 'number', min: 0, max: 100 },
+    { key: 'impA', label: 'MPP current', unit: 'A', type: 'number', min: 0, max: 100 },
+    {
+      key: 'tempCoeffPmax',
+      label: 'Pmax temp coeff',
+      unit: '%/°C',
+      type: 'number',
+      min: -1,
+      max: 0,
+    },
+    { key: 'tempCoeffVoc', label: 'Voc temp coeff', unit: '%/°C', type: 'number', min: -1, max: 0 },
     {
       key: 'maxSeriesFuseRating',
       label: 'Max series fuse',
       unit: 'A',
       type: 'number',
       decimals: 0,
+      min: 1,
+      max: 100,
     },
     {
       key: 'maxSystemVoltage',
@@ -41,6 +52,8 @@ const FIELD_DEFS: Record<ComponentKind, FieldDef[]> = {
       unit: 'V',
       type: 'number',
       decimals: 0,
+      min: 50,
+      max: 2000,
     },
   ],
   inverter: [
@@ -50,21 +63,47 @@ const FIELD_DEFS: Record<ComponentKind, FieldDef[]> = {
       type: 'text',
       unit: 'on-grid,hybrid,off-grid',
     },
-    { key: 'continuousPowerW', label: 'Continuous power', unit: 'W', type: 'number', decimals: 0 },
-    { key: 'surgePowerW', label: 'Surge power', unit: 'W', type: 'number', decimals: 0 },
+    {
+      key: 'continuousPowerW',
+      label: 'Continuous power',
+      unit: 'W',
+      type: 'number',
+      decimals: 0,
+      min: 1,
+      max: 100000,
+    },
+    {
+      key: 'surgePowerW',
+      label: 'Surge power',
+      unit: 'W',
+      type: 'number',
+      decimals: 0,
+      min: 1,
+      max: 100000,
+    },
     {
       key: 'batteryVoltageV',
       label: 'Battery voltage',
       type: 'enum',
       options: ['12', '24', '48', 'none'],
     },
-    { key: 'maxPvVoltageV', label: 'Max PV voltage', unit: 'V', type: 'number', decimals: 0 },
+    {
+      key: 'maxPvVoltageV',
+      label: 'Max PV voltage',
+      unit: 'V',
+      type: 'number',
+      decimals: 0,
+      min: 10,
+      max: 2000,
+    },
     {
       key: 'mpptVoltageRangeMinV',
       label: 'MPPT window min',
       unit: 'V',
       type: 'number',
       decimals: 0,
+      min: 0,
+      max: 2000,
     },
     {
       key: 'mpptVoltageRangeMaxV',
@@ -72,11 +111,20 @@ const FIELD_DEFS: Record<ComponentKind, FieldDef[]> = {
       unit: 'V',
       type: 'number',
       decimals: 0,
+      min: 0,
+      max: 2000,
     },
-    { key: 'maxPvCurrentA', label: 'Max PV current', unit: 'A', type: 'number' },
-    { key: 'mpptCount', label: 'MPPT trackers', type: 'number', decimals: 0 },
-    { key: 'maxAcOutputCurrentA', label: 'Max AC current', unit: 'A', type: 'number' },
-    { key: 'efficiency', label: 'Efficiency', type: 'number', decimals: 3 },
+    { key: 'maxPvCurrentA', label: 'Max PV current', unit: 'A', type: 'number', min: 0, max: 100 },
+    { key: 'mpptCount', label: 'MPPT trackers', type: 'number', decimals: 0, min: 1, max: 16 },
+    {
+      key: 'maxAcOutputCurrentA',
+      label: 'Max AC current',
+      unit: 'A',
+      type: 'number',
+      min: 0,
+      max: 500,
+    },
+    { key: 'efficiency', label: 'Efficiency', type: 'number', decimals: 3, min: 0, max: 1 },
   ],
   battery: [
     {
@@ -85,14 +133,31 @@ const FIELD_DEFS: Record<ComponentKind, FieldDef[]> = {
       type: 'enum',
       options: ['lifepo4', 'agm-gel', 'flooded'],
     },
-    { key: 'nominalVoltageV', label: 'Nominal voltage', unit: 'V', type: 'number' },
-    { key: 'capacityAh', label: 'Capacity', unit: 'Ah', type: 'number', decimals: 0 },
+    {
+      key: 'nominalVoltageV',
+      label: 'Nominal voltage',
+      unit: 'V',
+      type: 'number',
+      min: 1,
+      max: 100,
+    },
+    {
+      key: 'capacityAh',
+      label: 'Capacity',
+      unit: 'Ah',
+      type: 'number',
+      decimals: 0,
+      min: 1,
+      max: 100000,
+    },
     {
       key: 'maxChargeCurrentA',
       label: 'Max charge current',
       unit: 'A',
       type: 'number',
       decimals: 0,
+      min: 0,
+      max: 1000,
     },
     {
       key: 'maxDischargeCurrentA',
@@ -100,22 +165,62 @@ const FIELD_DEFS: Record<ComponentKind, FieldDef[]> = {
       unit: 'A',
       type: 'number',
       decimals: 0,
+      min: 0,
+      max: 1000,
     },
-    { key: 'recommendedDoD', label: 'Depth of discharge', type: 'number', decimals: 2 },
-    { key: 'cycles', label: 'Cycle life', type: 'number', decimals: 0 },
+    {
+      key: 'recommendedDoD',
+      label: 'Depth of discharge',
+      type: 'number',
+      decimals: 2,
+      min: 0,
+      max: 1,
+    },
+    { key: 'cycles', label: 'Cycle life', type: 'number', decimals: 0, min: 0, max: 1000000 },
   ],
   controller: [
     { key: 'type', label: 'Type', type: 'enum', options: ['MPPT', 'PWM'] },
-    { key: 'ratedCurrentA', label: 'Rated current', unit: 'A', type: 'number', decimals: 0 },
-    { key: 'maxPvVoltageV', label: 'Max PV voltage', unit: 'V', type: 'number', decimals: 0 },
+    {
+      key: 'ratedCurrentA',
+      label: 'Rated current',
+      unit: 'A',
+      type: 'number',
+      decimals: 0,
+      min: 1,
+      max: 1000,
+    },
+    {
+      key: 'maxPvVoltageV',
+      label: 'Max PV voltage',
+      unit: 'V',
+      type: 'number',
+      decimals: 0,
+      min: 10,
+      max: 2000,
+    },
     { key: 'systemVoltageV', label: 'System voltage', type: 'enum', options: ['12', '24', '48'] },
-    { key: 'efficiency', label: 'Efficiency', type: 'number', decimals: 3 },
+    { key: 'efficiency', label: 'Efficiency', type: 'number', decimals: 3, min: 0, max: 1 },
   ],
   cable: [
-    { key: 'crossSectionMm2', label: 'Cross section', unit: 'mm²', type: 'number' },
+    {
+      key: 'crossSectionMm2',
+      label: 'Cross section',
+      unit: 'mm²',
+      type: 'number',
+      min: 0.1,
+      max: 1000,
+    },
     { key: 'awg', label: 'AWG label', type: 'text', unit: 'e.g. 10 AWG' },
-    { key: 'ampacityA', label: 'Ampacity', unit: 'A', type: 'number' },
-    { key: 'resistancePerKm', label: 'Resistance', unit: 'Ω/km', type: 'number', decimals: 4 },
+    { key: 'ampacityA', label: 'Ampacity', unit: 'A', type: 'number', min: 0, max: 10000 },
+    {
+      key: 'resistancePerKm',
+      label: 'Resistance',
+      unit: 'Ω/km',
+      type: 'number',
+      decimals: 4,
+      min: 0,
+      max: 100,
+    },
   ],
 };
 
@@ -298,6 +403,8 @@ export function CatalogEditor(props: {
             value={typeof draft[def.key] === 'number' ? (draft[def.key] as number) : null}
             onChange={(v) => setField(def.key, v)}
             decimals={def.decimals ?? 2}
+            min={def.min}
+            max={def.max}
           />
         );
       })}

@@ -3,7 +3,6 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import {
   Button,
   Card,
-  Chip,
   Dialog,
   List,
   Portal,
@@ -287,34 +286,6 @@ export function PshPicker(props: {
   );
 }
 
-export function ChipList<T>(props: {
-  items: T[];
-  getKey: (item: T) => string;
-  getLabel: (item: T) => string;
-  selected: string;
-  onSelect: (key: string) => void;
-  emptyText?: string;
-}) {
-  const { items, getKey, getLabel, selected, onSelect, emptyText } = props;
-  return (
-    <View style={styles.chips}>
-      {items.length === 0 && emptyText ? (
-        <Text variant="bodySmall">{emptyText}</Text>
-      ) : (
-        items.map((item) => {
-          const key = getKey(item);
-          const isSelected = key === selected;
-          return (
-            <Chip key={key} selected={isSelected} onPress={() => onSelect(key)} style={styles.chip}>
-              {getLabel(item)}
-            </Chip>
-          );
-        })
-      )}
-    </View>
-  );
-}
-
 export function ManualPshDialog(props: {
   visible: boolean;
   onDismiss: () => void;
@@ -401,14 +372,6 @@ const styles = StyleSheet.create({
   },
   dialog: {
     maxHeight: '90%',
-  },
-  chips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  chip: {
-    marginBottom: 4,
   },
   manual: {
     gap: 8,

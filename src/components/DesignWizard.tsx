@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { Button, Card, Text, TextInput, useTheme } from 'react-native-paper';
+import { Button, Card, Snackbar, Text, TextInput, useTheme } from 'react-native-paper';
 
 import { ComponentSlot, ManualPshDialog, PshPicker } from '@/components/pickers';
 import { NumberField, SegmentedField, StepperField } from '@/components/form';
@@ -40,6 +40,11 @@ import { useUnitFormatters } from '@/hooks/useUnitFormatters';
 
 export const WIZARD_STEPS = 5;
 
+const cToF = (c: number): number => (c * 9) / 5 + 32;
+const fToC = (f: number): number => ((f - 32) * 5) / 9;
+const mToFt = (m: number): number => m * 3.28084;
+const ftToM = (ft: number): number => ft / 3.28084;
+
 type VoltageChoice = 'auto' | '12' | '24' | '48';
 
 export function DesignWizard(props: {
@@ -56,6 +61,8 @@ export function DesignWizard(props: {
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   const [projectName, setProjectName] = useState('');
   const [clientName, setClientName] = useState('');
@@ -91,6 +98,32 @@ export function DesignWizard(props: {
   const [selectedControllerId, setSelectedControllerId] = useState<string | null>(
     initial?.selectedControllerId ?? null,
   );
+  const [inverterEfficiency, setInverterEfficiency] = useState<number | null>(
+    initial?.inverterEfficiency ?? null,
+  );
+  const [systemLossFactor, setSystemLossFactor] = useState<number | null>(
+    initial?.systemLossFactor ?? null,
+  );
+  const [dcVoltageDropPercent, setDcVoltageDropPercent] = useState<number | null>(
+    initial?.dcVoltageDropPercent ?? null,
+  );
+  const [acVoltageDropPercent, setAcVoltageDropPercent] = useState<number | null>(
+    initial?.acVoltageDropPercent ?? null,
+  );
+  const [tempDeratingFactor, setTempDeratingFactor] = useState<number | null>(
+    initial?.tempDeratingFactor ?? null,
+  );
+  const [pvCableLengthM, setPvCableLengthM] = useState<number | null>(
+    initial?.pvCableLengthM ?? null,
+  );
+  const [dcCableLengthM, setDcCableLengthM] = useState<number | null>(
+    initial?.dcCableLengthM ?? null,
+  );
+  const [acCableLengthM, setAcCableLengthM] = useState<number | null>(
+    initial?.acCableLengthM ?? null,
+  );
+  const [busbarRatingA, setBusbarRatingA] = useState<number | null>(initial?.busbarRatingA ?? null);
+  const [mainBreakerA, setMainBreakerA] = useState<number | null>(initial?.mainBreakerA ?? null);
   const [manualPshOpen, setManualPshOpen] = useState(false);
 
   useEffect(() => {
@@ -134,6 +167,8 @@ export function DesignWizard(props: {
 
   const standardsPolicy = useSettingsStore((s) => s.standardsPolicy);
   const setStandardsPolicy = useSettingsStore((s) => s.setStandardsPolicy);
+  const tempUnit = useSettingsStore((s) => s.units.temp);
+  const lengthUnit = useSettingsStore((s) => s.units.length);
 
   const input = useMemo<SystemInput>(() => {
     return {
@@ -150,6 +185,16 @@ export function DesignWizard(props: {
       chemistry,
       systemVoltageOverride: voltage === 'auto' ? undefined : (Number(voltage) as SystemVoltage),
       minTemperatureC: minTemperatureC ?? undefined,
+      inverterEfficiency: inverterEfficiency ?? undefined,
+      systemLossFactor: systemLossFactor ?? undefined,
+      dcVoltageDropPercent: dcVoltageDropPercent ?? undefined,
+      acVoltageDropPercent: acVoltageDropPercent ?? undefined,
+      tempDeratingFactor: tempDeratingFactor ?? undefined,
+      pvCableLengthM: pvCableLengthM ?? undefined,
+      dcCableLengthM: dcCableLengthM ?? undefined,
+      acCableLengthM: acCableLengthM ?? undefined,
+      busbarRatingA: busbarRatingA ?? undefined,
+      mainBreakerA: mainBreakerA ?? undefined,
       standardsPolicy,
       selected: {
         panel: resolved.panel,
@@ -172,6 +217,16 @@ export function DesignWizard(props: {
     chemistry,
     voltage,
     minTemperatureC,
+    inverterEfficiency,
+    systemLossFactor,
+    dcVoltageDropPercent,
+    acVoltageDropPercent,
+    tempDeratingFactor,
+    pvCableLengthM,
+    dcCableLengthM,
+    acCableLengthM,
+    busbarRatingA,
+    mainBreakerA,
     standardsPolicy,
     resolved,
   ]);
@@ -203,6 +258,7 @@ export function DesignWizard(props: {
 
   const autoSuggest = async () => {
     setBusy(true);
+    setSaveError(null);
     try {
       const baseline = designSystem({ ...input, selected: {} });
       const limits = baselineLimits();
@@ -232,6 +288,8 @@ export function DesignWizard(props: {
       setSelectedInverterId(suggestion.inverterId);
       setSelectedBatteryId(suggestion.batteryId);
       setSelectedControllerId(suggestion.controllerId);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Component suggestion failed');
     } finally {
       setBusy(false);
     }
@@ -243,6 +301,7 @@ export function DesignWizard(props: {
 
   const save = async () => {
     setSaving(true);
+    setSaveError(null);
     try {
       const patch = {
         systemType,
@@ -253,6 +312,16 @@ export function DesignWizard(props: {
         summerPsh: effectiveSummerPsh,
         pshLocationId: effectivePshLocationId,
         minTemperatureC,
+        inverterEfficiency,
+        systemLossFactor,
+        dcVoltageDropPercent,
+        acVoltageDropPercent,
+        tempDeratingFactor,
+        pvCableLengthM,
+        dcCableLengthM,
+        acCableLengthM,
+        busbarRatingA,
+        mainBreakerA,
         selectedPanelId,
         selectedInverterId,
         selectedBatteryId,
@@ -285,7 +354,7 @@ export function DesignWizard(props: {
       if (result) await useProjectStore.getState().saveDesignResult(scenarioId, result);
       onSaved(projectId, scenarioId);
     } catch (error) {
-      console.error('Save failed', error);
+      setSaveError(error instanceof Error ? error.message : 'Save failed. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -409,9 +478,18 @@ export function DesignWizard(props: {
       </View>
       <NumberField
         label="Min. ambient temperature"
-        value={minTemperatureC}
-        onChange={setMinTemperatureC}
-        unit="°C"
+        value={
+          minTemperatureC === null
+            ? null
+            : tempUnit === 'f'
+              ? cToF(minTemperatureC)
+              : minTemperatureC
+        }
+        onChange={(v) => setMinTemperatureC(v === null ? null : tempUnit === 'f' ? fToC(v) : v)}
+        unit={tempUnit === 'f' ? '°F' : '°C'}
+        decimals={0}
+        min={-60}
+        max={tempUnit === 'f' ? 140 : 60}
         helperText="Used for worst-cold Voc derating (NEC 690.7)."
       />
     </View>
@@ -464,6 +542,144 @@ export function DesignWizard(props: {
           { value: '48', label: '48 V' },
         ]}
       />
+
+      <Button
+        mode={advancedOpen ? 'contained-tonal' : 'outlined'}
+        icon={advancedOpen ? 'chevron-up' : 'chevron-down'}
+        onPress={() => setAdvancedOpen((v) => !v)}
+        style={styles.suggestButton}
+      >
+        Advanced engineering inputs
+      </Button>
+      {advancedOpen ? (
+        <Card mode="outlined">
+          <Card.Content style={styles.gap}>
+            <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+              Optional — blank fields fall back to the engine defaults.
+            </Text>
+            <View style={styles.row}>
+              <NumberField
+                label="Inverter efficiency"
+                value={inverterEfficiency === null ? null : inverterEfficiency * 100}
+                onChange={(v) => setInverterEfficiency(v === null ? null : v / 100)}
+                unit="%"
+                decimals={1}
+                min={50}
+                max={100}
+              />
+              <NumberField
+                label="System loss factor"
+                value={systemLossFactor === null ? null : systemLossFactor * 100}
+                onChange={(v) => setSystemLossFactor(v === null ? null : v / 100)}
+                unit="%"
+                decimals={1}
+                min={0}
+                max={100}
+              />
+            </View>
+            <View style={styles.row}>
+              <NumberField
+                label="DC voltage drop limit"
+                value={dcVoltageDropPercent}
+                onChange={setDcVoltageDropPercent}
+                unit="%"
+                decimals={1}
+                min={0}
+                max={10}
+              />
+              <NumberField
+                label="AC voltage drop limit"
+                value={acVoltageDropPercent}
+                onChange={setAcVoltageDropPercent}
+                unit="%"
+                decimals={1}
+                min={0}
+                max={10}
+              />
+            </View>
+            <NumberField
+              label="Cable temp derating factor"
+              value={tempDeratingFactor === null ? null : tempDeratingFactor * 100}
+              onChange={(v) => setTempDeratingFactor(v === null ? null : v / 100)}
+              unit="%"
+              decimals={1}
+              min={0}
+              max={100}
+              helperText="Rooftop temperature derating applied to conductor ampacity."
+            />
+            <View style={styles.row}>
+              <NumberField
+                label="PV cable length"
+                value={
+                  pvCableLengthM === null
+                    ? null
+                    : lengthUnit === 'ft'
+                      ? mToFt(pvCableLengthM)
+                      : pvCableLengthM
+                }
+                onChange={(v) =>
+                  setPvCableLengthM(v === null ? null : lengthUnit === 'ft' ? ftToM(v) : v)
+                }
+                unit={lengthUnit === 'ft' ? 'ft' : 'm'}
+                decimals={1}
+                min={0}
+              />
+              <NumberField
+                label="DC cable length"
+                value={
+                  dcCableLengthM === null
+                    ? null
+                    : lengthUnit === 'ft'
+                      ? mToFt(dcCableLengthM)
+                      : dcCableLengthM
+                }
+                onChange={(v) =>
+                  setDcCableLengthM(v === null ? null : lengthUnit === 'ft' ? ftToM(v) : v)
+                }
+                unit={lengthUnit === 'ft' ? 'ft' : 'm'}
+                decimals={1}
+                min={0}
+              />
+            </View>
+            <NumberField
+              label="AC cable length"
+              value={
+                acCableLengthM === null
+                  ? null
+                  : lengthUnit === 'ft'
+                    ? mToFt(acCableLengthM)
+                    : acCableLengthM
+              }
+              onChange={(v) =>
+                setAcCableLengthM(v === null ? null : lengthUnit === 'ft' ? ftToM(v) : v)
+              }
+              unit={lengthUnit === 'ft' ? 'ft' : 'm'}
+              decimals={1}
+              min={0}
+            />
+            <View style={styles.row}>
+              <NumberField
+                label="Busbar rating"
+                value={busbarRatingA}
+                onChange={setBusbarRatingA}
+                unit="A"
+                decimals={0}
+                min={0}
+                max={5000}
+              />
+              <NumberField
+                label="Main breaker"
+                value={mainBreakerA}
+                onChange={setMainBreakerA}
+                unit="A"
+                decimals={0}
+                min={0}
+                max={5000}
+              />
+            </View>
+          </Card.Content>
+        </Card>
+      ) : null}
     </View>
   );
 
@@ -598,6 +814,9 @@ export function DesignWizard(props: {
           setSummerPsh(location.summerPsh);
         }}
       />
+      <Snackbar visible={saveError !== null} onDismiss={() => setSaveError(null)} duration={4000}>
+        {saveError ?? ''}
+      </Snackbar>
     </View>
   );
 }
@@ -648,6 +867,8 @@ function ResultsView(props: {
 
   const { dailyLoad, pv, battery, inverter, controller, cables, protection } = result;
   const useKw = powerUnit === 'kw';
+  const isOnGrid = result.input.systemType === 'on-grid';
+  const isOffGrid = result.input.systemType === 'off-grid';
 
   return (
     <View style={styles.gap}>
@@ -677,14 +898,16 @@ function ResultsView(props: {
           icon="solar-panel"
           tint={theme.colors.secondary}
         />
-        <StatCard
-          label="Battery bank"
-          value={f.number(battery.actualCapacityAh, 0)}
-          unit="Ah"
-          hint={`${battery.batteryCount} cells · ${f.number(useKw ? battery.actualCapacityKwh : battery.actualCapacityKwh * 1000, useKw ? 2 : 0)} ${useKw ? 'kWh' : 'Wh'}`}
-          icon="battery"
-          tint={theme.colors.tertiary}
-        />
+        {!isOnGrid ? (
+          <StatCard
+            label="Battery bank"
+            value={f.number(battery.actualCapacityAh, 0)}
+            unit="Ah"
+            hint={`${battery.batteryCount} cells · ${f.number(useKw ? battery.actualCapacityKwh : battery.actualCapacityKwh * 1000, useKw ? 2 : 0)} ${useKw ? 'kWh' : 'Wh'}`}
+            icon="battery"
+            tint={theme.colors.tertiary}
+          />
+        ) : null}
       </View>
       <View style={styles.statRow}>
         <StatCard
@@ -694,14 +917,16 @@ function ResultsView(props: {
           icon="transmission-tower"
           tint={theme.colors.primary}
         />
-        <StatCard
-          label="Controller"
-          value={controller.minCurrentA > 0 ? f.number(controller.minCurrentA, 1) : '—'}
-          unit={controller.minCurrentA > 0 ? 'A' : undefined}
-          hint={controller.recommendedType}
-          icon="cog"
-          tint={theme.colors.primary}
-        />
+        {isOffGrid ? (
+          <StatCard
+            label="Controller"
+            value={controller.minCurrentA > 0 ? f.number(controller.minCurrentA, 1) : '—'}
+            unit={controller.minCurrentA > 0 ? 'A' : undefined}
+            hint={controller.recommendedType}
+            icon="cog"
+            tint={theme.colors.primary}
+          />
+        ) : null}
       </View>
 
       <SectionTitle title="Compliance & warnings" icon="shield-alert-outline" />

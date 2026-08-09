@@ -194,12 +194,16 @@ function LoadRow(props: {
             value={load.powerWatts}
             onChange={(powerWatts) => onChange({ powerWatts: powerWatts ?? undefined })}
             unit="W"
+            min={0}
+            max={100000}
           />
           <NumberField
             label="Hours / day"
             value={load.hoursPerDay}
             onChange={(hoursPerDay) => onChange({ hoursPerDay: hoursPerDay ?? undefined })}
             unit="h"
+            min={0}
+            max={24}
           />
         </View>
         <SegmentedField
@@ -235,6 +239,8 @@ function LoadRow(props: {
             value={load.surgeFactor ?? 5}
             onChange={(surgeFactor) => onChange({ surgeFactor: surgeFactor ?? 5 })}
             helperText="Startup surge multiplier (motors typically 3–7×)."
+            min={1}
+            max={10}
           />
         ) : null}
         <List.Item
@@ -283,6 +289,8 @@ export function TotalLoadEditor(props: {
         onChange={(v) => onChange({ totalDailyKwh: v, totalPeakKw, totalSurgeKw, totalLoadIsAc })}
         unit="kWh/day"
         helperText="Whole-site daily consumption, e.g. from a utility bill or meter."
+        min={0}
+        max={100000}
       />
       <NumberField
         label="Peak simultaneous load (optional)"
@@ -290,6 +298,8 @@ export function TotalLoadEditor(props: {
         onChange={(v) => onChange({ totalDailyKwh, totalPeakKw: v, totalSurgeKw, totalLoadIsAc })}
         unit="kW"
         helperText={`Estimated as ${TOTAL_LOAD_ESTIMATE_HOURS} h/day of the daily energy when blank.`}
+        min={0}
+        max={100000}
       />
       <NumberField
         label="Peak surge load (optional)"
@@ -297,6 +307,8 @@ export function TotalLoadEditor(props: {
         onChange={(v) => onChange({ totalDailyKwh, totalPeakKw, totalSurgeKw: v, totalLoadIsAc })}
         unit="kW"
         helperText={`Estimated as peak × ${TOTAL_LOAD_DEFAULT_SURGE_MULTIPLIER} when blank (motor startup).`}
+        min={0}
+        max={100000}
       />
       <SegmentedField
         label="Circuit"

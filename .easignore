@@ -50,3 +50,34 @@ coverage/
 
 # --- local env files ---
 .env*.local
+
+# --- documentation & license (not needed to compile) ---
+AGENTS.md
+PLAN.md
+CHANGELOG.md
+ENHANCEMENT_PLAN.md
+Technical_Studay.md
+README.md
+LICENSE
+
+# --- dev tooling config (lint / format / scm) ---
+eslint.config.js
+.prettierrc
+.prettierignore
+.gitignore
+.easignore
+
+# --- unused Expo template assets ---
+# Only icon.png, android-icon-foreground.png, android-icon-monochrome.png
+# and splash-icon.png are referenced in app.json; the rest are template leftovers.
+assets/expo.icon/
+assets/images/expo-badge.png
+assets/images/expo-badge-white.png
+assets/images/expo-logo.png
+assets/images/react-logo.png
+assets/images/react-logo@2x.png
+assets/images/react-logo@3x.png
+assets/images/tutorial-web.png
+assets/images/favicon.png
+assets/images/logo-glow.png
+assets/images/tabIcons/

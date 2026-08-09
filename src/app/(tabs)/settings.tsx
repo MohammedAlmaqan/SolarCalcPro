@@ -3,10 +3,15 @@ import { StyleSheet, View } from 'react-native';
 import { Appbar, Card, Divider, List, Text, useTheme } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { SegmentedField } from '@/components/form';
+import { SegmentedField, NumberField } from '@/components/form';
 import { PshPicker } from '@/components/pickers';
 import { useReferenceStore } from '@/store/reference';
-import { useSettingsStore } from '@/store/settings';
+import {
+  CURRENCY_LABELS,
+  CURRENCY_SYMBOLS,
+  type CurrencyCode,
+  useSettingsStore,
+} from '@/store/settings';
 
 export default function SettingsScreen() {
   const theme = useTheme();
@@ -106,6 +111,32 @@ export default function SettingsScreen() {
             <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
               Wizard guides you step by step; expert shows every field on one screen.
             </Text>
+          </Card.Content>
+        </Card>
+
+        <Card mode="outlined">
+          <Card.Title title="Cost & payback" titleVariant="titleMedium" />
+          <Divider />
+          <Card.Content>
+            <SegmentedField
+              label="Currency"
+              value={settings.currency}
+              onChange={(v) => settings.setCurrency(v as CurrencyCode)}
+              options={(Object.keys(CURRENCY_LABELS) as CurrencyCode[]).map((code) => ({
+                value: code,
+                label: code,
+              }))}
+            />
+            <NumberField
+              label="Grid electric rate"
+              value={settings.electricRate}
+              onChange={(v) => settings.setElectricRate(v ?? 0)}
+              unit={`${CURRENCY_SYMBOLS[settings.currency]}/kWh`}
+              helperText="Used to estimate annual savings and the simple payback period."
+              decimals={3}
+              min={0}
+              max={2}
+            />
           </Card.Content>
         </Card>
 

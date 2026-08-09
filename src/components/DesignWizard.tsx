@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { Button, Card, Snackbar, Text, TextInput, useTheme } from 'react-native-paper';
+import { Button, Card, Divider, Snackbar, Text, TextInput, useTheme } from 'react-native-paper';
 
 import { ComponentSlot, ManualPshDialog, PshPicker } from '@/components/pickers';
 import { NumberField, SegmentedField, StepperField } from '@/components/form';
@@ -15,6 +15,7 @@ import {
 } from '@/components/results';
 import { referenceInverterFor, REFERENCE_CONTROLLER } from '@/core/data/referenceComponents';
 import { designSystem } from '@/core/engine';
+import { estimateCost } from '@/core/formulas/costing';
 import type {
   BatteryChemistry,
   BatterySpec,
@@ -36,7 +37,7 @@ import { suggestComponents } from '@/db/suggest';
 import { useCatalogStore } from '@/store/catalog';
 import { useProjectStore } from '@/store/projects';
 import { useReferenceStore } from '@/store/reference';
-import { useSettingsStore } from '@/store/settings';
+import { CURRENCY_SYMBOLS, useSettingsStore } from '@/store/settings';
 import { useUnitFormatters } from '@/hooks/useUnitFormatters';
 
 export const WIZARD_STEPS = 5;
@@ -917,6 +918,10 @@ function ResultsView(props: {
   const theme = useTheme();
   const f = useUnitFormatters();
   const powerUnit = useSettingsStore((s) => s.units.power);
+  const electricRate = useSettingsStore((s) => s.electricRate);
+  const setElectricRate = useSettingsStore((s) => s.setElectricRate);
+  const currency = useSettingsStore((s) => s.currency);
+  const [costOpen, setCostOpen] = useState(false);
 
   if (error) {
     return (
@@ -931,6 +936,9 @@ function ResultsView(props: {
   const useKw = powerUnit === 'kw';
   const isOnGrid = result.input.systemType === 'on-grid';
   const isOffGrid = result.input.systemType === 'off-grid';
+  const currencySymbol = CURRENCY_SYMBOLS[currency];
+  const cost = estimateCost(result, { electricRate, currency: currencySymbol });
+  const money = (value: number): string => `${currencySymbol}${f.number(value, 2)}`;
 
   return (
     <View style={styles.gap}>
@@ -1041,6 +1049,85 @@ function ResultsView(props: {
         </Card.Content>
       </Card>
 
+      <SectionTitle title="Cost & payback" icon="currency-usd" />
+      <Button
+        mode={costOpen ? 'contained-tonal' : 'outlined'}
+        icon={costOpen ? 'chevron-up' : 'chevron-down'}
+        onPress={() => setCostOpen((v) => !v)}
+        style={styles.suggestButton}
+      >
+        Cost estimate & ROI
+      </Button>
+      {costOpen ? (
+        <View style={styles.gap}>
+          <View style={styles.statRow}>
+            <StatCard
+              label="Est. system cost"
+              value={money(cost.total)}
+              icon="cash-multiple"
+              tint={theme.colors.primary}
+            />
+            <StatCard
+              label="Payback"
+              value={cost.simplePaybackYears === null ? '—' : f.number(cost.simplePaybackYears, 1)}
+              unit={cost.simplePaybackYears === null ? undefined : 'yrs'}
+              hint={cost.simplePaybackYears === null ? 'Set a grid rate' : undefined}
+              icon="timeline-clock"
+              tint={theme.colors.secondary}
+            />
+          </View>
+          <View style={styles.statRow}>
+            <StatCard
+              label="Annual yield"
+              value={f.number(cost.annualProductionKwh, 0)}
+              unit="kWh/yr"
+              hint="At the site's peak sun hours"
+              icon="solar-power"
+              tint={theme.colors.tertiary}
+            />
+            <StatCard
+              label="Annual savings"
+              value={money(cost.annualSavings)}
+              hint="Yield × grid rate"
+              icon="trending-up"
+              tint={theme.colors.primary}
+            />
+          </View>
+
+          <Card mode="outlined">
+            <Card.Content>
+              {cost.lines.map((line) => (
+                <KeyValueRow
+                  key={line.id}
+                  label={`${line.label} · ${f.number(line.quantity, line.quantity < 10 ? 2 : 0)} ${line.unit} × ${currencySymbol}${f.number(line.unitPrice, 2)}`}
+                  value={money(line.total)}
+                />
+              ))}
+              <Divider style={styles.costDivider} />
+              <KeyValueRow label="Equipment subtotal" value={money(cost.equipmentSubtotal)} />
+              <KeyValueRow label="Balance of system (BOS)" value={money(cost.bosTotal)} />
+              <KeyValueRow label="Installation & labor" value={money(cost.laborTotal)} />
+              <KeyValueRow label="Total estimate" value={money(cost.total)} strong />
+            </Card.Content>
+          </Card>
+
+          <NumberField
+            label="Grid electric rate"
+            value={electricRate}
+            onChange={(v) => setElectricRate(v ?? 0)}
+            unit={`${currencySymbol}/kWh`}
+            helperText="Drives annual savings and the simple payback."
+            decimals={3}
+            min={0}
+            max={2}
+          />
+
+          <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+            {cost.assumptions.map((assumption) => `• ${assumption}`).join('\n')}
+          </Text>
+        </View>
+      ) : null}
+
       <SectionTitle title="Audit trail (show your work)" icon="calculator" />
       <AuditTrailList steps={result.audit} />
 
@@ -1079,6 +1166,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
     marginBottom: 8,
+  },
+  costDivider: {
+    marginVertical: 8,
   },
   suggestButton: {
     alignSelf: 'flex-start',

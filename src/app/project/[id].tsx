@@ -16,7 +16,7 @@ import {
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import type { ScenarioRecord } from '@/db/repos/projects';
+import type { ScenarioPatch, ScenarioRecord } from '@/db/repos/projects';
 import { useProjectStore } from '@/store/projects';
 
 export default function ProjectDetailScreen() {
@@ -34,6 +34,9 @@ export default function ProjectDetailScreen() {
   const [projectMenu, setProjectMenu] = useState(false);
   const [renameDialog, setRenameDialog] = useState(false);
   const [renameName, setRenameName] = useState('');
+  const [detailsDialog, setDetailsDialog] = useState(false);
+  const [detailsClient, setDetailsClient] = useState('');
+  const [detailsNotes, setDetailsNotes] = useState('');
   const [scenarioMenu, setScenarioMenu] = useState<string | null>(null);
   const [deletingScenario, setDeletingScenario] = useState<ScenarioRecord | null>(null);
   const [deletingProject, setDeletingProject] = useState(false);
@@ -54,6 +57,60 @@ export default function ProjectDetailScreen() {
     if (!id || !renameName.trim()) return;
     await rename(id, { name: renameName.trim() });
     setRenameDialog(false);
+  };
+
+  const openDetails = () => {
+    setProjectMenu(false);
+    setDetailsClient(project?.clientName ?? '');
+    setDetailsNotes(project?.notes ?? '');
+    setDetailsDialog(true);
+  };
+
+  const confirmDetails = async () => {
+    if (!id) return;
+    await rename(id, { clientName: detailsClient.trim() || undefined, notes: detailsNotes.trim() });
+    setDetailsDialog(false);
+  };
+
+  const addAndOpenScenario = async () => {
+    const created = await addScenario();
+    if (created) router.push(`/project/scenario/${created.id}`);
+  };
+
+  const duplicateScenario = async (scenario: ScenarioRecord) => {
+    const patch: ScenarioPatch = {
+      name: `${scenario.name} (copy)`,
+      systemType: scenario.systemType,
+      systemVoltageV: scenario.systemVoltageV,
+      chemistry: scenario.chemistry,
+      autonomyDays: scenario.autonomyDays,
+      winterPsh: scenario.winterPsh,
+      summerPsh: scenario.summerPsh,
+      pshLocationId: scenario.pshLocation?.id ?? null,
+      inverterEfficiency: scenario.inverterEfficiency,
+      systemLossFactor: scenario.systemLossFactor,
+      dcVoltageDropPercent: scenario.dcVoltageDropPercent,
+      acVoltageDropPercent: scenario.acVoltageDropPercent,
+      minTemperatureC: scenario.minTemperatureC,
+      tempDeratingFactor: scenario.tempDeratingFactor,
+      pvCableLengthM: scenario.pvCableLengthM,
+      dcCableLengthM: scenario.dcCableLengthM,
+      acCableLengthM: scenario.acCableLengthM,
+      busbarRatingA: scenario.busbarRatingA,
+      mainBreakerA: scenario.mainBreakerA,
+      selectedPanelId: scenario.selectedPanelId,
+      selectedInverterId: scenario.selectedInverterId,
+      selectedBatteryId: scenario.selectedBatteryId,
+      selectedControllerId: scenario.selectedControllerId,
+      loadMode: scenario.loadMode,
+      totalDailyKwh: scenario.totalDailyKwh,
+      totalPeakKw: scenario.totalPeakKw,
+      totalSurgeKw: scenario.totalSurgeKw,
+      totalLoadIsAc: scenario.totalLoadIsAc,
+      loads: scenario.loads,
+    };
+    setScenarioMenu(null);
+    await addScenario(patch);
   };
 
   const confirmDeleteScenario = async () => {
@@ -152,6 +209,11 @@ export default function ProjectDetailScreen() {
                 }}
               />
               <Menu.Item
+                leadingIcon="content-copy"
+                title="Duplicate"
+                onPress={() => duplicateScenario(scenario).catch((e) => console.error(e))}
+              />
+              <Menu.Item
                 leadingIcon="delete-outline"
                 title="Delete"
                 onPress={() => {
@@ -192,6 +254,11 @@ export default function ProjectDetailScreen() {
         >
           <Menu.Item leadingIcon="pencil-outline" title="Rename" onPress={openRename} />
           <Menu.Item
+            leadingIcon="account-edit-outline"
+            title="Edit details"
+            onPress={openDetails}
+          />
+          <Menu.Item
             leadingIcon="delete-outline"
             title="Delete project"
             onPress={() => {
@@ -208,13 +275,18 @@ export default function ProjectDetailScreen() {
             Client: {project.clientName}
           </Text>
         ) : null}
+        {project.notes ? (
+          <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+            {project.notes}
+          </Text>
+        ) : null}
 
         <View style={styles.scenarioHeader}>
           <Text variant="titleMedium">Scenarios</Text>
           <Button
             icon="plus"
             mode="text"
-            onPress={() => addScenario().catch((e) => console.error(e))}
+            onPress={() => addAndOpenScenario().catch((e) => console.error(e))}
           >
             Add scenario
           </Button>
@@ -246,6 +318,30 @@ export default function ProjectDetailScreen() {
             <Button onPress={confirmRename} disabled={!renameName.trim()}>
               Save
             </Button>
+          </Dialog.Actions>
+        </Dialog>
+
+        <Dialog visible={detailsDialog} onDismiss={() => setDetailsDialog(false)}>
+          <Dialog.Title>Edit project details</Dialog.Title>
+          <Dialog.Content style={styles.detailsContent}>
+            <TextInput
+              mode="outlined"
+              label="Client name"
+              value={detailsClient}
+              onChangeText={setDetailsClient}
+            />
+            <TextInput
+              mode="outlined"
+              label="Notes"
+              value={detailsNotes}
+              onChangeText={setDetailsNotes}
+              multiline
+              numberOfLines={3}
+            />
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setDetailsDialog(false)}>Cancel</Button>
+            <Button onPress={confirmDetails}>Save</Button>
           </Dialog.Actions>
         </Dialog>
 
@@ -312,5 +408,8 @@ const styles = StyleSheet.create({
   },
   scenarioName: {
     flexShrink: 1,
+  },
+  detailsContent: {
+    gap: 8,
   },
 });

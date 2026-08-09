@@ -34,7 +34,7 @@ interface ProjectState {
   importProject: (backup: import('../reports/jsonIO').ProjectExport) => Promise<void>;
 
   setActiveScenario: (scenarioId: string) => Promise<void>;
-  addScenario: (patch?: ScenarioPatch) => Promise<void>;
+  addScenario: (patch?: ScenarioPatch) => Promise<ScenarioRecord | null>;
   updateScenario: (scenarioId: string, patch: ScenarioPatch) => Promise<void>;
   deleteScenario: (scenarioId: string) => Promise<void>;
   saveDesignResult: (scenarioId: string, result: DesignResult) => Promise<void>;
@@ -115,9 +115,10 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   addScenario: async (patch) => {
     const project = get().activeProject;
-    if (!project) return;
-    await repo().addScenario(project.id, patch);
+    if (!project) return null;
+    const created = await repo().addScenario(project.id, patch);
     await get().loadProject(project.id);
+    return created;
   },
 
   updateScenario: async (scenarioId, patch) => {

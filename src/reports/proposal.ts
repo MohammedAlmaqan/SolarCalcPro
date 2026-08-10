@@ -269,6 +269,11 @@ export function buildProposalPdfHtml(data: ProposalData): string {
     <div class="lbl">Estimated annual production (${Math.round(result.production.performanceRatio * 100)}% performance ratio)</div>
     <div class="val">${f.number(result.production.annualKwh, 0)} kWh/yr</div>
   </div>
+  ${
+    cost.batteryAging
+      ? `<div class="roi"><div class="lbl">Battery lifespan (${Math.round(result.battery.depthOfDischarge * 100)}% depth of discharge)</div><div class="val">${Number.isFinite(cost.batteryAging.lifespanYears) ? `${f.number(cost.batteryAging.lifespanYears, 1)} years` : 'outlasts the analysis'}</div></div>`
+      : ''
+  }
   <table>
     <tr><th>Month</th><th class="num">PSH (h/day)</th><th class="num">Yield (kWh)</th></tr>
     ${result.production.months

@@ -13,7 +13,8 @@ import {
   StatCard,
   WarningsList,
 } from '@/components/results';
-import { referenceInverterFor, REFERENCE_CONTROLLER } from '@/core/data/referenceComponents';
+import { referenceInverterFor, REFERENCE_BATTERY, REFERENCE_CONTROLLER } from '@/core/data/referenceComponents';
+import { batteryAgingAnalysis } from '@/core/formulas/batteryAging';
 import { designSystem } from '@/core/engine';
 import { estimateCost } from '@/core/formulas/costing';
 import { monthLabel } from '@/core/formulas/production';
@@ -1338,6 +1339,74 @@ function ResultsView(props: {
               <KeyValueRow label="Balance of system (BOS)" value={money(cost.bosTotal)} />
               <KeyValueRow label="Installation & labor" value={money(cost.laborTotal)} />
               <KeyValueRow label="Total estimate" value={money(cost.total)} strong />
+            </Card.Content>
+          </Card>
+
+          <Card mode="outlined">
+            <Card.Content>
+              <Text variant="labelMedium" style={{ marginBottom: 6, color: theme.colors.onSurfaceVariant }}>
+                Battery aging
+              </Text>
+              {cost.batteryAging ? (
+                <>
+                  <KeyValueRow
+                    label={`Expected lifespan (${Math.round(result.battery.depthOfDischarge * 100)}% DoD)`}
+                    value={
+                      Number.isFinite(cost.batteryAging.lifespanYears)
+                        ? `${f.number(cost.batteryAging.lifespanYears, 1)} yrs`
+                        : 'System lifetime'
+                    }
+                  />
+                  <KeyValueRow
+                    label="Cycling · cycles"
+                    value={`${f.number(cost.batteryAging.cyclesPerDay, 2)}/day · ${f.number(cost.batteryAging.effectiveCycleLife, 0)}`}
+                  />
+                  <Text variant="bodySmall" style={{ marginTop: 6, color: theme.colors.onSurfaceVariant }}>
+                    Lifespan vs depth of discharge
+                  </Text>
+                  <View style={styles.sensRow}>
+                    {[0.3, 0.5, 0.7, 0.8, 0.9].map((dod) => {
+                      const spec = result.input.selected?.battery ?? REFERENCE_BATTERY;
+                      const years = batteryAgingAnalysis({
+                        ratedCycles: spec.cycles ?? 0,
+                        ratedDoD: spec.recommendedDoD,
+                        actualDoD: dod,
+                        chemistry: result.input.chemistry,
+                        batteryKwh: result.battery.actualCapacityKwh,
+                        dailyCycledKwh: result.dailyLoad.totalWhPerDay / 1000,
+                        systemLifeYears: systemLifeYears,
+                      }).lifespanYears;
+                      const capped = Number.isFinite(years) ? Math.min(years, 30) : 30;
+                      const active = Math.abs(dod - result.battery.depthOfDischarge) < 0.05;
+                      return (
+                        <View key={dod} style={styles.sensCol}>
+                          <Text variant="labelSmall" style={styles.sensValue}>
+                            {Number.isFinite(years) ? f.number(years, 0) : '∞'}
+                          </Text>
+                          <View style={styles.sensTrack}>
+                            <View
+                              style={[
+                                styles.sensFill,
+                                {
+                                  height: `${Math.max(6, (capped / 30) * 100)}%`,
+                                  backgroundColor: active ? theme.colors.tertiary : theme.colors.outline,
+                                },
+                              ]}
+                            />
+                          </View>
+                          <Text variant="labelSmall" style={styles.sensLabel}>
+                            {f.number(dod * 100, 0)}%
+                          </Text>
+                        </View>
+                      );
+                    })}
+                  </View>
+                </>
+              ) : (
+                <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                  No battery bank modelled (on-grid).
+                </Text>
+              )}
             </Card.Content>
           </Card>
 

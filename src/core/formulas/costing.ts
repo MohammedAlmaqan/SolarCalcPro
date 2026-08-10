@@ -1,6 +1,7 @@
 import type { BatteryChemistry, DesignResult } from '../types';
 import { REFERENCE_BATTERY } from '../data/referenceComponents';
 import { analyzeFinancials, type FinancialAnalysis } from './financial';
+import { batteryAgingAnalysis, type BatteryAgingResult } from './batteryAging';
 
 /**
  * Material pricing model used for cost estimates. Defaults are realistic
@@ -67,6 +68,8 @@ export interface CostEstimate {
   simplePaybackYears: number | null;
   /** Financial analysis (NPV, LCOE, discounted payback, replacements). */
   financial: FinancialAnalysis;
+  /** Battery aging analysis (cycle life vs DoD, lifespan, replacements). */
+  batteryAging: BatteryAgingResult | null;
   assumptions: string[];
 }
 
@@ -191,6 +194,20 @@ export function estimateCost(
 
   const batteryLine = lines.find((l) => l.id === 'batteries');
   const batterySpec = input.selected?.battery ?? REFERENCE_BATTERY;
+  const batteryKwh = isOnGrid ? 0 : battery.actualCapacityKwh;
+  const dailyCycledKwh = isOnGrid ? 0 : result.dailyLoad.totalWhPerDay / 1000;
+  const batteryAging =
+    !isOnGrid && batteryKwh > 0
+      ? batteryAgingAnalysis({
+          ratedCycles: batterySpec.cycles ?? 0,
+          ratedDoD: batterySpec.recommendedDoD,
+          actualDoD: battery.depthOfDischarge,
+          chemistry: input.chemistry,
+          batteryKwh,
+          dailyCycledKwh,
+          systemLifeYears: options?.systemLifeYears,
+        })
+      : null;
   const financial = analyzeFinancials({
     totalCost: total,
     annualProductionKwh,
@@ -198,9 +215,9 @@ export function estimateCost(
     discountRate: options?.discountRate,
     systemLifeYears: options?.systemLifeYears,
     tariffEscalationRate: options?.tariffEscalationRate,
-    batteryKwh: isOnGrid ? 0 : battery.actualCapacityKwh,
-    dailyCycledKwh: isOnGrid ? 0 : result.dailyLoad.totalWhPerDay / 1000,
-    batteryCycleLife: batterySpec.cycles ?? 0,
+    batteryKwh,
+    dailyCycledKwh,
+    batteryCycleLife: batteryAging?.effectiveCycleLife ?? 0,
     batteryReplacementCost: batteryLine?.total ?? 0,
   });
 
@@ -209,6 +226,7 @@ export function estimateCost(
     `BOS allowance ${Math.round(book.bosPct * 100)}% and installation ${Math.round(book.laborPct * 100)}% of equipment.`,
     `Payback vs grid electricity at ${currency}${electricRate.toFixed(2)}/kWh — savings are annual yield × rate.`,
     `Cash-flow model: ${financial.systemLifeYears} years, ${(financial.discountRate * 100).toFixed(0)}% discount rate, ${(financial.tariffEscalationRate * 100).toFixed(0)}% annual tariff escalation.`,
+    batteryAging ? batteryAging.recommendation : 'No battery bank modelled (on-grid).',
     'Cable runs counted as 2× one-way length; prices scale with conductor cross-section.',
   ];
 
@@ -223,6 +241,7 @@ export function estimateCost(
     annualSavings,
     simplePaybackYears,
     financial,
+    batteryAging,
     assumptions,
   };
 }

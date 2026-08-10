@@ -234,6 +234,11 @@ export function buildProposalPdfHtml(data: ProposalData): string {
         : ''
     }
     ${
+      result.production.shadingFactor < 1
+        ? `<tr><td>Shading derate</td><td>${f.number(result.production.shadingFactor * 100, 0)}% of irradiance</td></tr>`
+        : ''
+    }
+    ${
       controller.minCurrentA > 0
         ? `<tr><td>Charge controller</td><td>${controller.recommendedType} · ${controller.selectedCurrentA ?? controller.minCurrentA} A</td></tr>`
         : ''

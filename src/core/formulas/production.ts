@@ -22,6 +22,8 @@ export interface ProductionInput {
   tempCoeffPmax: number;
   /** Non-temperature system derate, default 0.75 (inverter + BOS losses). */
   systemDerate?: number;
+  /** Shading derate (0–1, default 1): effective irradiance after shading loss. */
+  shadingFactor?: number;
   /** Fixed array tilt from horizontal (°); adjusts the PSH curve. */
   tilt?: number;
   /** Compass azimuth of the array face (°, 0 = north, 180 = south); adjusts the PSH curve. */
@@ -85,6 +87,7 @@ export function estimateProduction(input: ProductionInput): ProductionResult {
   let monthlyPsh = synthMonthlyPsh(input.winterPsh, input.summerPsh, latitude);
   const ambient = deriveMonthlyAmbient(latitude);
   const systemDerate = Math.min(1, Math.max(0.3, input.systemDerate ?? 0.75));
+  const shadingFactor = Math.min(1, Math.max(0.5, input.shadingFactor ?? 1));
 
   let orientation: ProductionResult['orientation'];
   if (input.tilt !== undefined && input.azimuth !== undefined) {
@@ -98,6 +101,9 @@ export function estimateProduction(input: ProductionInput): ProductionResult {
       annualFactor: factors.annual,
       monthlyFactors: factors.monthly,
     };
+  }
+  if (shadingFactor < 1) {
+    monthlyPsh = monthlyPsh.map((psh) => psh * shadingFactor);
   }
 
   const months: MonthlyProduction[] = monthlyPsh.map((psh, i) => {
@@ -144,6 +150,7 @@ export function estimateProduction(input: ProductionInput): ProductionResult {
     performanceRatio,
     temperatureDerateAvg,
     systemDerate,
+    shadingFactor,
     orientation,
   };
 }

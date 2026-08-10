@@ -222,7 +222,7 @@ export function estimateCost(
   });
 
   const assumptions = [
-    `Solar yield simulated monthly (PVWatts-style): ${Math.round(result.production.performanceRatio * 100)}% performance ratio, ${avgPsh} avg peak sun hours/day, ${Math.round(result.production.temperatureDerateAvg * 100)}% average temperature derate.`,
+    `Solar yield simulated monthly (PVWatts-style): ${Math.round(result.production.performanceRatio * 100)}% performance ratio, ${avgPsh} avg peak sun hours/day, ${Math.round(result.production.temperatureDerateAvg * 100)}% average temperature derate${result.production.shadingFactor < 1 ? `, ${Math.round(result.production.shadingFactor * 100)}% irradiance after shading` : ''}.`,
     `BOS allowance ${Math.round(book.bosPct * 100)}% and installation ${Math.round(book.laborPct * 100)}% of equipment.`,
     `Payback vs grid electricity at ${currency}${electricRate.toFixed(2)}/kWh — savings are annual yield × rate.`,
     `Cash-flow model: ${financial.systemLifeYears} years, ${(financial.discountRate * 100).toFixed(0)}% discount rate, ${(financial.tariffEscalationRate * 100).toFixed(0)}% annual tariff escalation.`,

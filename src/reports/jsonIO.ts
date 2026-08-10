@@ -39,6 +39,7 @@ export interface ImportedScenario {
   mainBreakerA: number | null;
   tiltDeg: number | null;
   azimuthDeg: number | null;
+  shadingFactor: number | null;
   selectedPanelId: string | null;
   selectedInverterId: string | null;
   selectedBatteryId: string | null;
@@ -88,6 +89,7 @@ export function exportProject(project: ProjectWithScenarios): string {
         mainBreakerA: scenario.mainBreakerA,
         tiltDeg: scenario.tiltDeg,
         azimuthDeg: scenario.azimuthDeg,
+        shadingFactor: scenario.shadingFactor,
         selectedPanelId: scenario.selectedPanelId,
         selectedInverterId: scenario.selectedInverterId,
         selectedBatteryId: scenario.selectedBatteryId,
@@ -163,6 +165,7 @@ export function parseProjectImport(text: string): ProjectExport {
         mainBreakerA: optionalNumber(s.mainBreakerA),
         tiltDeg: optionalNumber(s.tiltDeg),
         azimuthDeg: optionalNumber(s.azimuthDeg),
+        shadingFactor: optionalNumber(s.shadingFactor),
         selectedPanelId: typeof s.selectedPanelId === 'string' ? s.selectedPanelId : null,
         selectedInverterId: typeof s.selectedInverterId === 'string' ? s.selectedInverterId : null,
         selectedBatteryId: typeof s.selectedBatteryId === 'string' ? s.selectedBatteryId : null,

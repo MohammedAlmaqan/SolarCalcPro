@@ -164,6 +164,8 @@ export interface SystemInput {
   inverterEfficiency?: number;
   /** Total system loss factor (0–1), default 0.75. */
   systemLossFactor?: number;
+  /** Shading derate (0–1, default 1); effective irradiance after shading loss. */
+  shadingFactor?: number;
   /** DC source circuit voltage-drop limit (%), default 2. */
   dcVoltageDropPercent?: number;
   /** AC circuit voltage-drop limit (%), default 3. */
@@ -375,6 +377,8 @@ export interface ProductionResult {
   performanceRatio: number;
   temperatureDerateAvg: number;
   systemDerate: number;
+  /** Shading derate applied to the irradiance (1 = no shading). */
+  shadingFactor: number;
   /** Present when a tilt/orientation was supplied; adjusts the PSH curve. */
   orientation?: OrientationResult;
 }

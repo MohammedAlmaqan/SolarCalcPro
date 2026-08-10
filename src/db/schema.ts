@@ -144,4 +144,10 @@ ALTER TABLE scenarios ADD COLUMN tilt_deg REAL;
 ALTER TABLE scenarios ADD COLUMN azimuth_deg REAL;
 `,
   },
+  {
+    version: 5,
+    up: `
+ALTER TABLE scenarios ADD COLUMN shading_factor REAL;
+`,
+  },
 ];

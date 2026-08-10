@@ -128,6 +128,7 @@ export function designSystem(input: SystemInput): DesignResult {
     latitude: input.latitude,
     tempCoeffPmax: panel.tempCoeffPmax,
     systemDerate: lossFactor,
+    shadingFactor: input.shadingFactor,
     tilt: input.tilt,
     azimuth: input.azimuth,
   });
@@ -139,6 +140,7 @@ export function designSystem(input: SystemInput): DesignResult {
       arrayWatts: pv.actualArrayWatts,
       performanceRatio: production.performanceRatio,
       temperatureDerateAvg: production.temperatureDerateAvg,
+      shadingFactor: production.shadingFactor,
       orientationFactor: production.orientation?.annualFactor ?? 1,
     },
     result: production.annualKwh,

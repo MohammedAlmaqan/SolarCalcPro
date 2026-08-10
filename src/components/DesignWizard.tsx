@@ -140,6 +140,9 @@ export function DesignWizard(props: {
   const [mainBreakerA, setMainBreakerA] = useState<number | null>(initial?.mainBreakerA ?? null);
   const [tilt, setTilt] = useState<number | null>(initial?.tiltDeg ?? null);
   const [azimuth, setAzimuth] = useState<number | null>(initial?.azimuthDeg ?? null);
+  const [shadingLossPct, setShadingLossPct] = useState<number | null>(
+    initial?.shadingFactor != null ? Math.round((1 - initial.shadingFactor) * 100) : null,
+  );
   const [manualPshOpen, setManualPshOpen] = useState(false);
 
   useEffect(() => {
@@ -167,6 +170,8 @@ export function DesignWizard(props: {
 
   const effectiveTilt = tilt ?? effectiveLocation?.recommendedTilt ?? annualOptimalTilt(effectiveLatitude, 'winter');
   const effectiveAzimuth = azimuth ?? (effectiveLatitude >= 0 ? 180 : 0);
+  const effectiveShadingFactor =
+    shadingLossPct === null ? 1 : Math.max(0.5, (100 - shadingLossPct) / 100);
   const recommendedTilt = annualOptimalTilt(effectiveLatitude, 'winter');
   const tiltSensitivity = useMemo(() => {
     const azimuthDeg = effectiveAzimuth;
@@ -230,6 +235,7 @@ export function DesignWizard(props: {
       latitude: effectiveLatitude,
       tilt: effectiveTilt,
       azimuth: effectiveAzimuth,
+      shadingFactor: effectiveShadingFactor,
       autonomyDays,
       chemistry,
       systemVoltageOverride: voltage === 'auto' ? undefined : (Number(voltage) as SystemVoltage),
@@ -268,6 +274,7 @@ export function DesignWizard(props: {
     effectiveLatitude,
     effectiveTilt,
     effectiveAzimuth,
+    effectiveShadingFactor,
     autonomyDays,
     chemistry,
     voltage,
@@ -379,6 +386,7 @@ export function DesignWizard(props: {
         mainBreakerA,
         tiltDeg: tilt,
         azimuthDeg: azimuth,
+        shadingFactor: shadingLossPct === null ? null : Math.max(0.5, (100 - shadingLossPct) / 100),
         selectedPanelId,
         selectedInverterId,
         selectedBatteryId,
@@ -836,6 +844,8 @@ export function DesignWizard(props: {
       effectiveLatitude={effectiveLatitude}
       recommendedTilt={recommendedTilt}
       tiltSensitivity={tiltSensitivity}
+      shadingLossPct={shadingLossPct}
+      setShadingLossPct={setShadingLossPct}
     />
   );
 
@@ -956,6 +966,8 @@ function ResultsView(props: {
   effectiveLatitude: number;
   recommendedTilt: number;
   tiltSensitivity: { tilt: number; factor: number }[];
+  shadingLossPct: number | null;
+  setShadingLossPct: (value: number | null) => void;
 }) {
   const {
     result,
@@ -973,6 +985,8 @@ function ResultsView(props: {
     effectiveLatitude,
     recommendedTilt,
     tiltSensitivity,
+    shadingLossPct,
+    setShadingLossPct,
   } = props;
   const theme = useTheme();
   const f = useUnitFormatters();
@@ -1138,6 +1152,16 @@ function ResultsView(props: {
           tint={theme.colors.secondary}
         />
       </View>
+      <NumberField
+        label="Shading loss"
+        value={shadingLossPct}
+        onChange={setShadingLossPct}
+        unit="%"
+        helperText="Trees, buildings or inter-row shadowing (0 = no shading)."
+        min={0}
+        max={50}
+        decimals={0}
+      />
       <Card mode="outlined">
         <Card.Content>
           <Text variant="labelMedium" style={{ marginBottom: 6, color: theme.colors.onSurfaceVariant }}>

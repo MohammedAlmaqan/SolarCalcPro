@@ -48,6 +48,7 @@ export interface ScenarioRecord {
   mainBreakerA: number | null;
   tiltDeg: number | null;
   azimuthDeg: number | null;
+  shadingFactor: number | null;
   selectedPanelId: string | null;
   selectedInverterId: string | null;
   selectedBatteryId: string | null;
@@ -99,6 +100,7 @@ export interface ScenarioPatch {
   mainBreakerA?: number | null;
   tiltDeg?: number | null;
   azimuthDeg?: number | null;
+  shadingFactor?: number | null;
   selectedPanelId?: string | null;
   selectedInverterId?: string | null;
   selectedBatteryId?: string | null;
@@ -152,6 +154,7 @@ interface ScenarioRow {
   main_breaker_a: number | null;
   tilt_deg: number | null;
   azimuth_deg: number | null;
+  shading_factor: number | null;
   selected_panel_id: string | null;
   selected_inverter_id: string | null;
   selected_battery_id: string | null;
@@ -252,6 +255,7 @@ function applyPatch(patch: ScenarioPatch): {
   push('main_breaker_a', patch.mainBreakerA);
   push('tilt_deg', patch.tiltDeg);
   push('azimuth_deg', patch.azimuthDeg);
+  push('shading_factor', patch.shadingFactor);
   push('selected_panel_id', patch.selectedPanelId);
   push('selected_inverter_id', patch.selectedInverterId);
   push('selected_battery_id', patch.selectedBatteryId);
@@ -307,6 +311,7 @@ export function projectRepo(db: DatabaseLike): ProjectRepo {
       mainBreakerA: row.main_breaker_a,
       tiltDeg: row.tilt_deg,
       azimuthDeg: row.azimuth_deg,
+      shadingFactor: row.shading_factor,
       selectedPanelId: row.selected_panel_id,
       selectedInverterId: row.selected_inverter_id,
       selectedBatteryId: row.selected_battery_id,
@@ -454,12 +459,13 @@ export function projectRepo(db: DatabaseLike): ProjectRepo {
                autonomy_days, winter_psh, summer_psh, psh_location_id, inverter_efficiency,
                system_loss_factor, dc_voltage_drop_percent, ac_voltage_drop_percent,
                min_temperature_c, temp_derating_factor, pv_cable_length_m, dc_cable_length_m,
-               ac_cable_length_m, busbar_rating_a, main_breaker_a, tilt_deg, azimuth_deg,
-               selected_panel_id,
-               selected_inverter_id, selected_battery_id, selected_controller_id,
-               selected_pv_cable_id, selected_dc_cable_id, selected_ac_cable_id,
-               load_mode, total_daily_kwh, total_peak_kw, total_surge_kw, total_load_is_ac)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                ac_cable_length_m, busbar_rating_a, main_breaker_a, tilt_deg, azimuth_deg,
+                shading_factor,
+                selected_panel_id,
+                selected_inverter_id, selected_battery_id, selected_controller_id,
+                selected_pv_cable_id, selected_dc_cable_id, selected_ac_cable_id,
+                load_mode, total_daily_kwh, total_peak_kw, total_surge_kw, total_load_is_ac)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
               scenarioId,
               projectId,
@@ -485,6 +491,7 @@ export function projectRepo(db: DatabaseLike): ProjectRepo {
               scenario.mainBreakerA,
               scenario.tiltDeg,
               scenario.azimuthDeg,
+              scenario.shadingFactor,
               scenario.selectedPanelId,
               scenario.selectedInverterId,
               scenario.selectedBatteryId,
@@ -525,12 +532,13 @@ export function projectRepo(db: DatabaseLike): ProjectRepo {
                system_loss_factor, dc_voltage_drop_percent, ac_voltage_drop_percent,
                min_temperature_c, temp_derating_factor, pv_cable_length_m, dc_cable_length_m,
                ac_cable_length_m, busbar_rating_a, main_breaker_a, tilt_deg, azimuth_deg,
+               shading_factor,
                selected_panel_id,
                selected_inverter_id, selected_battery_id, selected_controller_id,
                selected_pv_cable_id, selected_dc_cable_id, selected_ac_cable_id,
-               load_mode, total_daily_kwh, total_peak_kw, total_surge_kw, total_load_is_ac,
-               design_result_json)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                load_mode, total_daily_kwh, total_peak_kw, total_surge_kw, total_load_is_ac,
+                design_result_json)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
               scenarioId,
               projectId,
@@ -556,6 +564,7 @@ export function projectRepo(db: DatabaseLike): ProjectRepo {
               scenario.mainBreakerA,
               scenario.tiltDeg,
               scenario.azimuthDeg,
+              scenario.shadingFactor,
               scenario.selectedPanelId,
               scenario.selectedInverterId,
               scenario.selectedBatteryId,
@@ -590,11 +599,12 @@ export function projectRepo(db: DatabaseLike): ProjectRepo {
                system_loss_factor, dc_voltage_drop_percent, ac_voltage_drop_percent,
                min_temperature_c, temp_derating_factor, pv_cable_length_m, dc_cable_length_m,
                ac_cable_length_m, busbar_rating_a, main_breaker_a, tilt_deg, azimuth_deg,
+               shading_factor,
                selected_panel_id,
                selected_inverter_id, selected_battery_id, selected_controller_id,
                selected_pv_cable_id, selected_dc_cable_id, selected_ac_cable_id,
                load_mode, total_daily_kwh, total_peak_kw, total_surge_kw, total_load_is_ac)
-            VALUES (?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            VALUES (?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             scenarioId,
             projectId,
@@ -619,6 +629,7 @@ export function projectRepo(db: DatabaseLike): ProjectRepo {
             patch.mainBreakerA ?? null,
             patch.tiltDeg ?? null,
             patch.azimuthDeg ?? null,
+            patch.shadingFactor ?? null,
             patch.selectedPanelId ?? null,
             patch.selectedInverterId ?? null,
             patch.selectedBatteryId ?? null,
@@ -715,6 +726,7 @@ export function projectRepo(db: DatabaseLike): ProjectRepo {
         mainBreakerA: scenario.mainBreakerA ?? undefined,
         tilt: scenario.tiltDeg ?? undefined,
         azimuth: scenario.azimuthDeg ?? undefined,
+        shadingFactor: scenario.shadingFactor ?? undefined,
       };
       const selected: SystemInput['selected'] = {};
       if (panel) selected.panel = panel.spec;

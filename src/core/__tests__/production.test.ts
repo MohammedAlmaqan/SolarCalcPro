@@ -111,4 +111,31 @@ describe('estimateProduction — monthly yield & performance ratio', () => {
     expect(monthLabel(1)).toBe('Jan');
     expect(monthLabel(12)).toBe('Dec');
   });
+
+  it('applies a shading derate to the monthly irradiance', () => {
+    const clean = estimateProduction({
+      arrayWatts: 3000,
+      winterPsh: 4,
+      summerPsh: 6,
+      latitude: 25,
+      tempCoeffPmax: -0.35,
+      systemDerate: 0.75,
+      tilt: 35,
+      azimuth: 180,
+    });
+    const shaded = estimateProduction({
+      arrayWatts: 3000,
+      winterPsh: 4,
+      summerPsh: 6,
+      latitude: 25,
+      tempCoeffPmax: -0.35,
+      systemDerate: 0.75,
+      tilt: 35,
+      azimuth: 180,
+      shadingFactor: 0.85,
+    });
+    expect(shaded.shadingFactor).toBe(0.85);
+    expect(shaded.annualKwh).toBeCloseTo(clean.annualKwh * 0.85, 1);
+    expect(shaded.months[5].energyKwh).toBeCloseTo(clean.months[5].energyKwh * 0.85, 1);
+  });
 });

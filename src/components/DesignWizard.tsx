@@ -16,6 +16,7 @@ import {
 import { referenceInverterFor, REFERENCE_CONTROLLER } from '@/core/data/referenceComponents';
 import { designSystem } from '@/core/engine';
 import { estimateCost } from '@/core/formulas/costing';
+import { monthLabel } from '@/core/formulas/production';
 import type {
   BatteryChemistry,
   BatterySpec,
@@ -158,6 +159,7 @@ export function DesignWizard(props: {
   const effectivePshLocationId = effectiveLocation?.id ?? pshLocationId;
   const effectiveWinterPsh = winterPsh ?? effectiveLocation?.winterPsh ?? 4.0;
   const effectiveSummerPsh = summerPsh ?? effectiveLocation?.summerPsh ?? 6.0;
+  const effectiveLatitude = effectiveLocation?.latitude ?? initial?.pshLocation?.latitude ?? 25;
 
   const resolved = useMemo<NonNullable<SystemInput['selected']>>(() => {
     const panel = selectedPanelId
@@ -210,6 +212,7 @@ export function DesignWizard(props: {
       systemType,
       winterPsh: effectiveWinterPsh,
       summerPsh: effectiveSummerPsh,
+      latitude: effectiveLatitude,
       autonomyDays,
       chemistry,
       systemVoltageOverride: voltage === 'auto' ? undefined : (Number(voltage) as SystemVoltage),
@@ -245,6 +248,7 @@ export function DesignWizard(props: {
     systemType,
     effectiveWinterPsh,
     effectiveSummerPsh,
+    effectiveLatitude,
     autonomyDays,
     chemistry,
     voltage,
@@ -1061,6 +1065,56 @@ function ResultsView(props: {
         </Card.Content>
       </Card>
 
+      <SectionTitle title="Production & yield" icon="chart-bar" />
+      <View style={styles.statRow}>
+        <StatCard
+          label="Annual yield"
+          value={f.number(result.production.annualKwh, 0)}
+          unit="kWh/yr"
+          hint="PVWatts-style monthly simulation"
+          icon="solar-power"
+          tint={theme.colors.tertiary}
+        />
+        <StatCard
+          label="Performance ratio"
+          value={`${f.number(result.production.performanceRatio * 100, 0)}%`}
+          hint={`Avg temp derate ${f.number(result.production.temperatureDerateAvg * 100, 0)}%`}
+          icon="chart-areaspline"
+          tint={theme.colors.secondary}
+        />
+      </View>
+      <Card mode="outlined">
+        <Card.Content>
+          <Text variant="labelMedium" style={{ marginBottom: 6, color: theme.colors.onSurfaceVariant }}>
+            Monthly yield (kWh)
+          </Text>
+          <View style={styles.barChart}>
+            {result.production.months.map((m) => {
+              const maxEnergy = Math.max(...result.production.months.map((x) => x.energyKwh), 1);
+              const heightPct = Math.max(4, (m.energyKwh / maxEnergy) * 100);
+              return (
+                <View key={m.month} style={styles.barColumn}>
+                  <Text variant="labelSmall" style={styles.barValue}>
+                    {f.number(m.energyKwh, 0)}
+                  </Text>
+                  <View style={styles.barTrack}>
+                    <View
+                      style={[
+                        styles.barFill,
+                        { height: `${heightPct}%`, backgroundColor: theme.colors.primary },
+                      ]}
+                    />
+                  </View>
+                  <Text variant="labelSmall" style={styles.barLabel}>
+                    {monthLabel(m.month)}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+        </Card.Content>
+      </Card>
+
       <SectionTitle title="Cost & payback" icon="currency-usd" />
       <Button
         mode={costOpen ? 'contained-tonal' : 'outlined'}
@@ -1256,6 +1310,37 @@ const styles = StyleSheet.create({
   },
   costDivider: {
     marginVertical: 8,
+  },
+  barChart: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 4,
+    height: 150,
+  },
+  barColumn: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  barValue: {
+    fontSize: 8,
+    color: '#8a97a0',
+    marginBottom: 2,
+  },
+  barTrack: {
+    flex: 1,
+    width: '100%',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+  },
+  barFill: {
+    width: '80%',
+    borderTopLeftRadius: 3,
+    borderTopRightRadius: 3,
+  },
+  barLabel: {
+    fontSize: 8,
+    color: '#8a97a0',
+    marginTop: 2,
   },
   suggestButton: {
     alignSelf: 'flex-start',

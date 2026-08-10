@@ -69,10 +69,8 @@ describe('estimateCost — line items scale with the sized design', () => {
   });
 
   it('computes a production-based payback at the electric rate', () => {
-    const avgPsh = (4 + 6) / 2;
-    const expectedProduction = (result.pv.actualArrayWatts * avgPsh * 365 * 0.75) / 1000;
-    expect(estimate.annualProductionKwh).toBeCloseTo(expectedProduction, 2);
-    expect(estimate.annualSavings).toBeCloseTo(expectedProduction * 0.15, 2);
+    expect(estimate.annualProductionKwh).toBeCloseTo(result.production.annualKwh, 2);
+    expect(estimate.annualSavings).toBeCloseTo(result.production.annualKwh * 0.15, 2);
     expect(estimate.simplePaybackYears).toBeCloseTo(estimate.total / estimate.annualSavings, 2);
   });
 

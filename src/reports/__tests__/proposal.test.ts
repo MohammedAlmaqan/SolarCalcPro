@@ -172,6 +172,16 @@ describe('buildProposalPdfHtml — structured proposal', () => {
     expect(html).toContain(`${data.cost.financial.systemLifeYears} years`);
   });
 
+  it('includes the monthly production table and performance ratio', () => {
+    const data = proposalData();
+    const html = buildProposalPdfHtml(data);
+    expect(html).toContain('performance ratio');
+    expect(html).toContain('<td>Jan</td>');
+    expect(html).toContain('<td>Dec</td>');
+    expect(html).toContain(`<td>Annual</td>`);
+    expect(html).toContain(`${formatNumber(data.result.production.annualKwh, 0)} kWh/yr`);
+  });
+
   it('includes terms, signature page and page-break control', () => {
     const html = buildProposalPdfHtml(proposalData());
     expect(html).toContain('Terms &amp; conditions');

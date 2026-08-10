@@ -185,8 +185,7 @@ export function estimateCost(
   const total = money(equipmentSubtotal + bosTotal + laborTotal);
 
   const avgPsh = (input.winterPsh + input.summerPsh) / 2;
-  const performanceRatio = input.systemLossFactor ?? 0.75;
-  const annualProductionKwh = money((pv.actualArrayWatts * avgPsh * 365 * performanceRatio) / 1000);
+  const annualProductionKwh = money(result.production.annualKwh);
   const annualSavings = money(annualProductionKwh * electricRate);
   const simplePaybackYears = annualSavings > 0 ? money(total / annualSavings) : null;
 
@@ -206,7 +205,7 @@ export function estimateCost(
   });
 
   const assumptions = [
-    `Solar yield modeled at ${Math.round(performanceRatio * 100)}% system performance ratio over ${avgPsh} peak sun hours/day.`,
+    `Solar yield simulated monthly (PVWatts-style): ${Math.round(result.production.performanceRatio * 100)}% performance ratio, ${avgPsh} avg peak sun hours/day, ${Math.round(result.production.temperatureDerateAvg * 100)}% average temperature derate.`,
     `BOS allowance ${Math.round(book.bosPct * 100)}% and installation ${Math.round(book.laborPct * 100)}% of equipment.`,
     `Payback vs grid electricity at ${currency}${electricRate.toFixed(2)}/kWh — savings are annual yield × rate.`,
     `Cash-flow model: ${financial.systemLifeYears} years, ${(financial.discountRate * 100).toFixed(0)}% discount rate, ${(financial.tariffEscalationRate * 100).toFixed(0)}% annual tariff escalation.`,

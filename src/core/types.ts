@@ -149,6 +149,8 @@ export interface SystemInput {
   winterPsh: number;
   /** Summer peak sun hours (kWh/m²/day). */
   summerPsh: number;
+  /** Site latitude (°) for the seasonal production model, default 25. */
+  latitude?: number;
   /** Days of autonomy (battery backup). */
   autonomyDays: number;
   chemistry: BatteryChemistry;
@@ -331,6 +333,27 @@ export interface DesignResult {
   cables: CableResult;
   protection: ProtectionResult;
   compliance: ComplianceResult;
+  production: ProductionResult;
   warnings: Warning[];
   audit: AuditStep[];
+}
+
+export interface MonthlyProduction {
+  month: number;
+  daysInMonth: number;
+  psh: number;
+  ambientC: number;
+  cellTempC: number;
+  temperatureDerate: number;
+  energyKwh: number;
+}
+
+export interface ProductionResult {
+  months: MonthlyProduction[];
+  monthlyPsh: number[];
+  monthlyEnergyKwh: number[];
+  annualKwh: number;
+  performanceRatio: number;
+  temperatureDerateAvg: number;
+  systemDerate: number;
 }

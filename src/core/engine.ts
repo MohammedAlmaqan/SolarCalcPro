@@ -18,6 +18,7 @@ import { sizeInverter } from './formulas/inverter';
 import { calculateDailyLoad, calculateTotalDailyLoad } from './formulas/load';
 import { sizeProtection } from './formulas/protection';
 import { calculatePvArray, type StringConstraints } from './formulas/pv';
+import { estimateProduction } from './formulas/production';
 import { recommendSystemVoltage } from './formulas/systemVoltage';
 import { iecChecks } from './standards/iec';
 import { necChecks } from './standards/nec';
@@ -118,6 +119,28 @@ export function designSystem(input: SystemInput): DesignResult {
         },
         audit,
       );
+
+  // 5a. Production simulation (monthly yield / performance ratio) ----------
+  const production = estimateProduction({
+    arrayWatts: pv.actualArrayWatts,
+    winterPsh: input.winterPsh,
+    summerPsh: input.summerPsh,
+    latitude: input.latitude,
+    tempCoeffPmax: panel.tempCoeffPmax,
+    systemDerate: lossFactor,
+  });
+  audit.add({
+    id: 'production.annual',
+    description: 'Estimated annual PV production',
+    formula: 'Σ arrayWatts × PSH_m × days_m × tempDerate_m × systemDerate ÷ 1000',
+    values: {
+      arrayWatts: pv.actualArrayWatts,
+      performanceRatio: production.performanceRatio,
+      temperatureDerateAvg: production.temperatureDerateAvg,
+    },
+    result: production.annualKwh,
+    unit: 'kWh/yr',
+  });
 
   if (isOnGrid) {
     warnings.push({
@@ -330,6 +353,7 @@ export function designSystem(input: SystemInput): DesignResult {
     cables,
     protection,
     compliance,
+    production,
     warnings,
     audit: audit.all,
   };

@@ -5,6 +5,7 @@ import type { CompanyProfile, UnitSettings } from '../store/settings';
 import { createFormatters } from '../utils/format';
 import { COMPANY_LOGO_DATA_URI } from './companyLogoDataUri';
 import { renderSldHtml } from './pdfTemplate';
+import { monthLabel } from '../core/formulas/production';
 
 export interface ProposalData {
   projectName: string;
@@ -260,9 +261,23 @@ export function buildProposalPdfHtml(data: ProposalData): string {
 
   <h2>Financial &amp; return on investment</h2>
   <div class="roi">
-    <div class="lbl">Estimated annual production</div>
-    <div class="val">${f.number(cost.annualProductionKwh, 0)} kWh/yr</div>
+    <div class="lbl">Estimated annual production (${Math.round(result.production.performanceRatio * 100)}% performance ratio)</div>
+    <div class="val">${f.number(result.production.annualKwh, 0)} kWh/yr</div>
   </div>
+  <table>
+    <tr><th>Month</th><th class="num">PSH (h/day)</th><th class="num">Yield (kWh)</th></tr>
+    ${result.production.months
+      .map(
+        (m) => `
+    <tr>
+      <td>${esc(monthLabel(m.month))}</td>
+      <td class="num">${f.number(m.psh, 1)}</td>
+      <td class="num">${f.number(m.energyKwh, 0)}</td>
+    </tr>`,
+      )
+      .join('')}
+    <tr class="total-row"><td>Annual</td><td></td><td class="num">${f.number(result.production.annualKwh, 0)}</td></tr>
+  </table>
   <div class="roi">
     <div class="lbl">Estimated annual savings at ${symbol}${f.number(cost.annualSavings / Math.max(cost.annualProductionKwh, 1), 3)}/kWh</div>
     <div class="val">${money(cost.annualSavings)}/yr</div>

@@ -101,6 +101,7 @@ function proposalData(overrides?: Partial<Parameters<typeof buildProposalPdfHtml
       phone: '+966 50 000 0000',
       email: 'design@desertsolar.test',
       address: 'King Fahd Rd, Riyadh',
+      logoDataUri: '',
     },
   };
   return { ...base, ...overrides };
@@ -115,6 +116,20 @@ describe('buildProposalPdfHtml — structured proposal', () => {
     expect(html).toContain('+966 50 000 0000');
     expect(html).toContain('design@desertsolar.test');
     expect(html).toContain('King Fahd Rd, Riyadh');
+  });
+
+  it('embeds the bundled company logo by default', () => {
+    const html = buildProposalPdfHtml(proposalData());
+    expect(html).toContain('class="logo-img"');
+    expect(html).toContain('data:image/png;base64,');
+  });
+
+  it('uses an uploaded custom logo when provided', () => {
+    const customUri = 'data:image/png;base64,CUSTOMLOGO==';
+    const html = buildProposalPdfHtml(
+      proposalData({ profile: { ...proposalData().profile, logoDataUri: customUri } }),
+    );
+    expect(html).toContain(`src="${customUri}"`);
   });
 
   it('renders quote meta, project and client', () => {

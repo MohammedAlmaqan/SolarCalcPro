@@ -1,10 +1,12 @@
 import { useRouter } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
-import { Appbar, Card, Divider, List, Text, TextInput, useTheme } from 'react-native-paper';
+import * as ImagePicker from 'expo-image-picker';
+import { Image, StyleSheet, View } from 'react-native';
+import { Appbar, Button, Card, Divider, List, Text, TextInput, useTheme } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { SegmentedField, NumberField } from '@/components/form';
 import { PshPicker } from '@/components/pickers';
+import { COMPANY_LOGO_DATA_URI } from '@/reports/companyLogoDataUri';
 import { useReferenceStore } from '@/store/reference';
 import {
   CURRENCY_LABELS,
@@ -18,6 +20,22 @@ export default function SettingsScreen() {
   const router = useRouter();
   const settings = useSettingsStore();
   const psh = useReferenceStore((s) => s.psh);
+
+  const logoUri = settings.companyProfile.logoDataUri || COMPANY_LOGO_DATA_URI;
+
+  const pickLogo = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [8, 5],
+      quality: 0.9,
+      base64: true,
+    });
+    if (result.canceled || !result.assets[0]?.base64) return;
+    const asset = result.assets[0];
+    const dataUri = `data:${asset.mimeType ?? 'image/jpeg'};base64,${asset.base64}`;
+    await settings.setCompanyProfile({ logoDataUri: dataUri });
+  };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -121,6 +139,26 @@ export default function SettingsScreen() {
             <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginBottom: 8 }}>
               Branding shown on proposal PDF exports.
             </Text>
+            <View style={styles.logoRow}>
+              <View style={styles.logoBox}>
+                <Image source={{ uri: logoUri }} style={styles.logoImage} resizeMode="contain" />
+              </View>
+              <View style={styles.logoActions}>
+                <Button mode="contained-tonal" icon="image" onPress={pickLogo} compact>
+                  Choose image
+                </Button>
+                {settings.companyProfile.logoDataUri ? (
+                  <Button
+                    mode="text"
+                    icon="close-circle"
+                    onPress={() => settings.setCompanyProfile({ logoDataUri: '' })}
+                    compact
+                  >
+                    Reset to default
+                  </Button>
+                ) : null}
+              </View>
+            </View>
             <TextInput
               mode="outlined"
               label="Company name"
@@ -238,5 +276,30 @@ const styles = StyleSheet.create({
   },
   input: {
     marginBottom: 8,
+  },
+  logoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 12,
+  },
+  logoBox: {
+    width: 88,
+    height: 48,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.15)',
+    borderRadius: 6,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+  },
+  logoImage: {
+    width: '100%',
+    height: '100%',
+  },
+  logoActions: {
+    flex: 1,
+    gap: 4,
   },
 });

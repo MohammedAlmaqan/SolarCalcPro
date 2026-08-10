@@ -3,6 +3,7 @@ import type { DesignResult } from '../core/types';
 import type { ScenarioRecord } from '../db/repos/projects';
 import type { CompanyProfile, UnitSettings } from '../store/settings';
 import { createFormatters } from '../utils/format';
+import { COMPANY_LOGO_DATA_URI } from './companyLogoDataUri';
 import { renderSldHtml } from './pdfTemplate';
 
 export interface ProposalData {
@@ -96,6 +97,9 @@ export function buildProposalPdfHtml(data: ProposalData): string {
     )
     .join('');
 
+  // Page 4: terms + signature
+  const logoUri = profile.logoDataUri || COMPANY_LOGO_DATA_URI;
+
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -106,6 +110,7 @@ export function buildProposalPdfHtml(data: ProposalData): string {
   .page { page-break-before: always; }
   .brand { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #f5a623; padding-bottom: 10px; }
   .logo { width: 44px; height: 44px; border-radius: 8px; background: #0b4f6c; color: #fff; font-weight: 800; font-size: 22px; display: flex; align-items: center; justify-content: center; }
+  .logo-img { height: 44px; width: auto; object-fit: contain; }
   .brand-name { font-size: 18px; font-weight: 800; color: #0b4f6c; }
   .brand-tag { font-size: 10px; color: #555; }
   .contact { font-size: 10px; color: #333; text-align: right; line-height: 1.5; }
@@ -155,7 +160,11 @@ export function buildProposalPdfHtml(data: ProposalData): string {
   <!-- Cover page -->
   <div class="brand">
     <div>
-      <div class="logo">${esc((profile.companyName || 'S').charAt(0).toUpperCase())}</div>
+      ${
+        logoUri
+          ? `<img class="logo-img" src="${logoUri}" alt="${esc(profile.companyName || 'Logo')}" />`
+          : `<div class="logo">${esc((profile.companyName || 'S').charAt(0).toUpperCase())}</div>`
+      }
       <div class="brand-name">${esc(profile.companyName || 'SlorCalcPro')}</div>
       <div class="brand-tag">${esc(profile.tagline || 'Offline solar system design & engineering')}</div>
     </div>

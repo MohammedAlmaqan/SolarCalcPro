@@ -35,6 +35,8 @@ export interface CompanyProfile {
   phone: string;
   email: string;
   address: string;
+  /** Optional uploaded logo as a base64 data URI; falls back to the bundled logo. */
+  logoDataUri: string;
 }
 
 export const DEFAULT_COMPANY_PROFILE: CompanyProfile = {
@@ -44,6 +46,7 @@ export const DEFAULT_COMPANY_PROFILE: CompanyProfile = {
   phone: '',
   email: '',
   address: '',
+  logoDataUri: '',
 };
 
 export const CURRENCY_SYMBOLS: Record<CurrencyCode, string> = {

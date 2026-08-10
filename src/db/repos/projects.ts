@@ -46,6 +46,8 @@ export interface ScenarioRecord {
   acCableLengthM: number | null;
   busbarRatingA: number | null;
   mainBreakerA: number | null;
+  tiltDeg: number | null;
+  azimuthDeg: number | null;
   selectedPanelId: string | null;
   selectedInverterId: string | null;
   selectedBatteryId: string | null;
@@ -95,6 +97,8 @@ export interface ScenarioPatch {
   acCableLengthM?: number | null;
   busbarRatingA?: number | null;
   mainBreakerA?: number | null;
+  tiltDeg?: number | null;
+  azimuthDeg?: number | null;
   selectedPanelId?: string | null;
   selectedInverterId?: string | null;
   selectedBatteryId?: string | null;
@@ -146,6 +150,8 @@ interface ScenarioRow {
   ac_cable_length_m: number | null;
   busbar_rating_a: number | null;
   main_breaker_a: number | null;
+  tilt_deg: number | null;
+  azimuth_deg: number | null;
   selected_panel_id: string | null;
   selected_inverter_id: string | null;
   selected_battery_id: string | null;
@@ -244,6 +250,8 @@ function applyPatch(patch: ScenarioPatch): {
   push('ac_cable_length_m', patch.acCableLengthM);
   push('busbar_rating_a', patch.busbarRatingA);
   push('main_breaker_a', patch.mainBreakerA);
+  push('tilt_deg', patch.tiltDeg);
+  push('azimuth_deg', patch.azimuthDeg);
   push('selected_panel_id', patch.selectedPanelId);
   push('selected_inverter_id', patch.selectedInverterId);
   push('selected_battery_id', patch.selectedBatteryId);
@@ -297,6 +305,8 @@ export function projectRepo(db: DatabaseLike): ProjectRepo {
       acCableLengthM: row.ac_cable_length_m,
       busbarRatingA: row.busbar_rating_a,
       mainBreakerA: row.main_breaker_a,
+      tiltDeg: row.tilt_deg,
+      azimuthDeg: row.azimuth_deg,
       selectedPanelId: row.selected_panel_id,
       selectedInverterId: row.selected_inverter_id,
       selectedBatteryId: row.selected_battery_id,
@@ -444,11 +454,12 @@ export function projectRepo(db: DatabaseLike): ProjectRepo {
                autonomy_days, winter_psh, summer_psh, psh_location_id, inverter_efficiency,
                system_loss_factor, dc_voltage_drop_percent, ac_voltage_drop_percent,
                min_temperature_c, temp_derating_factor, pv_cable_length_m, dc_cable_length_m,
-               ac_cable_length_m, busbar_rating_a, main_breaker_a, selected_panel_id,
+               ac_cable_length_m, busbar_rating_a, main_breaker_a, tilt_deg, azimuth_deg,
+               selected_panel_id,
                selected_inverter_id, selected_battery_id, selected_controller_id,
                selected_pv_cable_id, selected_dc_cable_id, selected_ac_cable_id,
                load_mode, total_daily_kwh, total_peak_kw, total_surge_kw, total_load_is_ac)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
               scenarioId,
               projectId,
@@ -472,6 +483,8 @@ export function projectRepo(db: DatabaseLike): ProjectRepo {
               scenario.acCableLengthM,
               scenario.busbarRatingA,
               scenario.mainBreakerA,
+              scenario.tiltDeg,
+              scenario.azimuthDeg,
               scenario.selectedPanelId,
               scenario.selectedInverterId,
               scenario.selectedBatteryId,
@@ -511,12 +524,13 @@ export function projectRepo(db: DatabaseLike): ProjectRepo {
                autonomy_days, winter_psh, summer_psh, psh_location_id, inverter_efficiency,
                system_loss_factor, dc_voltage_drop_percent, ac_voltage_drop_percent,
                min_temperature_c, temp_derating_factor, pv_cable_length_m, dc_cable_length_m,
-               ac_cable_length_m, busbar_rating_a, main_breaker_a, selected_panel_id,
+               ac_cable_length_m, busbar_rating_a, main_breaker_a, tilt_deg, azimuth_deg,
+               selected_panel_id,
                selected_inverter_id, selected_battery_id, selected_controller_id,
                selected_pv_cable_id, selected_dc_cable_id, selected_ac_cable_id,
                load_mode, total_daily_kwh, total_peak_kw, total_surge_kw, total_load_is_ac,
                design_result_json)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
               scenarioId,
               projectId,
@@ -540,6 +554,8 @@ export function projectRepo(db: DatabaseLike): ProjectRepo {
               scenario.acCableLengthM,
               scenario.busbarRatingA,
               scenario.mainBreakerA,
+              scenario.tiltDeg,
+              scenario.azimuthDeg,
               scenario.selectedPanelId,
               scenario.selectedInverterId,
               scenario.selectedBatteryId,
@@ -568,16 +584,17 @@ export function projectRepo(db: DatabaseLike): ProjectRepo {
       const scenarioId = newId();
       await db.withExclusiveTransactionAsync(async (txn) => {
         await txn.runAsync(
-          `INSERT INTO scenarios
-            (id, project_id, name, is_active, system_type, system_voltage_v, chemistry,
-             autonomy_days, winter_psh, summer_psh, psh_location_id, inverter_efficiency,
-             system_loss_factor, dc_voltage_drop_percent, ac_voltage_drop_percent,
-             min_temperature_c, temp_derating_factor, pv_cable_length_m, dc_cable_length_m,
-             ac_cable_length_m, busbar_rating_a, main_breaker_a, selected_panel_id,
-             selected_inverter_id, selected_battery_id, selected_controller_id,
-             selected_pv_cable_id, selected_dc_cable_id, selected_ac_cable_id,
-             load_mode, total_daily_kwh, total_peak_kw, total_surge_kw, total_load_is_ac)
-           VALUES (?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            `INSERT INTO scenarios
+              (id, project_id, name, is_active, system_type, system_voltage_v, chemistry,
+               autonomy_days, winter_psh, summer_psh, psh_location_id, inverter_efficiency,
+               system_loss_factor, dc_voltage_drop_percent, ac_voltage_drop_percent,
+               min_temperature_c, temp_derating_factor, pv_cable_length_m, dc_cable_length_m,
+               ac_cable_length_m, busbar_rating_a, main_breaker_a, tilt_deg, azimuth_deg,
+               selected_panel_id,
+               selected_inverter_id, selected_battery_id, selected_controller_id,
+               selected_pv_cable_id, selected_dc_cable_id, selected_ac_cable_id,
+               load_mode, total_daily_kwh, total_peak_kw, total_surge_kw, total_load_is_ac)
+            VALUES (?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             scenarioId,
             projectId,
@@ -600,6 +617,8 @@ export function projectRepo(db: DatabaseLike): ProjectRepo {
             patch.acCableLengthM ?? null,
             patch.busbarRatingA ?? null,
             patch.mainBreakerA ?? null,
+            patch.tiltDeg ?? null,
+            patch.azimuthDeg ?? null,
             patch.selectedPanelId ?? null,
             patch.selectedInverterId ?? null,
             patch.selectedBatteryId ?? null,
@@ -694,6 +713,8 @@ export function projectRepo(db: DatabaseLike): ProjectRepo {
         acCableLengthM: scenario.acCableLengthM ?? undefined,
         busbarRatingA: scenario.busbarRatingA ?? undefined,
         mainBreakerA: scenario.mainBreakerA ?? undefined,
+        tilt: scenario.tiltDeg ?? undefined,
+        azimuth: scenario.azimuthDeg ?? undefined,
       };
       const selected: SystemInput['selected'] = {};
       if (panel) selected.panel = panel.spec;

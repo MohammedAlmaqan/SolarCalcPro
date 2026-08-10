@@ -151,6 +151,10 @@ export interface SystemInput {
   summerPsh: number;
   /** Site latitude (°) for the seasonal production model, default 25. */
   latitude?: number;
+  /** Fixed array tilt from horizontal (°), default 0 (flat on the horizontal). */
+  tilt?: number;
+  /** Compass azimuth of the array face (°, 0 = north, 180 = south), default equator-facing. */
+  azimuth?: number;
   /** Days of autonomy (battery backup). */
   autonomyDays: number;
   chemistry: BatteryChemistry;
@@ -348,6 +352,21 @@ export interface MonthlyProduction {
   energyKwh: number;
 }
 
+export interface OrientationResult {
+  /** Array tilt from horizontal (°). */
+  tilt: number;
+  /** Compass azimuth of the array face (°, 0 = north, 180 = south). */
+  azimuth: number;
+  /** Winter-priority optimal tilt for the site latitude (°). */
+  optimalTilt: number;
+  /** Azimuth offset from the equator-facing direction (0 = facing it, 180 = away). */
+  azimuthFromEquator: number;
+  /** Mean annual beam-capture ratio vs the horizontal (1 = horizontal-equivalent). */
+  annualFactor: number;
+  /** Per-month beam-capture ratio vs the horizontal. */
+  monthlyFactors: number[];
+}
+
 export interface ProductionResult {
   months: MonthlyProduction[];
   monthlyPsh: number[];
@@ -356,4 +375,6 @@ export interface ProductionResult {
   performanceRatio: number;
   temperatureDerateAvg: number;
   systemDerate: number;
+  /** Present when a tilt/orientation was supplied; adjusts the PSH curve. */
+  orientation?: OrientationResult;
 }

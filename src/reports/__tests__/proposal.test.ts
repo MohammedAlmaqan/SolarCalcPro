@@ -75,6 +75,8 @@ function proposalData(overrides?: Partial<Parameters<typeof buildProposalPdfHtml
       acCableLengthM: null,
       busbarRatingA: null,
       mainBreakerA: null,
+      tiltDeg: null,
+      azimuthDeg: null,
       selectedPanelId: null,
       selectedInverterId: null,
       selectedBatteryId: null,

@@ -8,6 +8,7 @@
  */
 
 import type { MonthlyProduction, ProductionResult } from '../types';
+import { orientationFactors } from './tilt';
 
 export interface ProductionInput {
   arrayWatts: number;
@@ -21,6 +22,10 @@ export interface ProductionInput {
   tempCoeffPmax: number;
   /** Non-temperature system derate, default 0.75 (inverter + BOS losses). */
   systemDerate?: number;
+  /** Fixed array tilt from horizontal (°); adjusts the PSH curve. */
+  tilt?: number;
+  /** Compass azimuth of the array face (°, 0 = north, 180 = south); adjusts the PSH curve. */
+  azimuth?: number;
 }
 
 const DAYS_IN_MONTH = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
@@ -76,10 +81,24 @@ export function deriveMonthlyAmbient(latitude?: number): number[] {
  *   (arrayWatts/1000 × Σ PSH_m·days_m), i.e. 1 PSH = 1 kWh/m² of irradiation.
  */
 export function estimateProduction(input: ProductionInput): ProductionResult {
-  const latitude = input.latitude;
-  const monthlyPsh = synthMonthlyPsh(input.winterPsh, input.summerPsh, latitude);
+  const latitude = input.latitude ?? 25;
+  let monthlyPsh = synthMonthlyPsh(input.winterPsh, input.summerPsh, latitude);
   const ambient = deriveMonthlyAmbient(latitude);
   const systemDerate = Math.min(1, Math.max(0.3, input.systemDerate ?? 0.75));
+
+  let orientation: ProductionResult['orientation'];
+  if (input.tilt !== undefined && input.azimuth !== undefined) {
+    const factors = orientationFactors(latitude, input.tilt, input.azimuth);
+    monthlyPsh = monthlyPsh.map((psh, i) => psh * factors.monthly[i]);
+    orientation = {
+      tilt: input.tilt,
+      azimuth: input.azimuth,
+      optimalTilt: factors.optimalTilt,
+      azimuthFromEquator: factors.azimuthFromEquator,
+      annualFactor: factors.annual,
+      monthlyFactors: factors.monthly,
+    };
+  }
 
   const months: MonthlyProduction[] = monthlyPsh.map((psh, i) => {
     const month = i + 1;
@@ -94,7 +113,7 @@ export function estimateProduction(input: ProductionInput): ProductionResult {
     return {
       month,
       daysInMonth,
-      psh,
+      psh: Math.round(psh * 100) / 100,
       ambientC: Math.round(ambientC * 10) / 10,
       cellTempC: Math.round(cellTempC * 10) / 10,
       temperatureDerate: Math.round(temperatureDerate * 1000) / 1000,
@@ -119,11 +138,12 @@ export function estimateProduction(input: ProductionInput): ProductionResult {
 
   return {
     months,
-    monthlyPsh,
+    monthlyPsh: months.map((m) => m.psh),
     monthlyEnergyKwh: months.map((m) => m.energyKwh),
     annualKwh,
     performanceRatio,
     temperatureDerateAvg,
     systemDerate,
+    orientation,
   };
 }

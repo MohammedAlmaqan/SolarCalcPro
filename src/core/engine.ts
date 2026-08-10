@@ -128,6 +128,8 @@ export function designSystem(input: SystemInput): DesignResult {
     latitude: input.latitude,
     tempCoeffPmax: panel.tempCoeffPmax,
     systemDerate: lossFactor,
+    tilt: input.tilt,
+    azimuth: input.azimuth,
   });
   audit.add({
     id: 'production.annual',
@@ -137,6 +139,7 @@ export function designSystem(input: SystemInput): DesignResult {
       arrayWatts: pv.actualArrayWatts,
       performanceRatio: production.performanceRatio,
       temperatureDerateAvg: production.temperatureDerateAvg,
+      orientationFactor: production.orientation?.annualFactor ?? 1,
     },
     result: production.annualKwh,
     unit: 'kWh/yr',

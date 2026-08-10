@@ -137,4 +137,11 @@ ALTER TABLE scenarios ADD COLUMN selected_dc_cable_id TEXT;
 ALTER TABLE scenarios ADD COLUMN selected_ac_cable_id TEXT;
 `,
   },
+  {
+    version: 4,
+    up: `
+ALTER TABLE scenarios ADD COLUMN tilt_deg REAL;
+ALTER TABLE scenarios ADD COLUMN azimuth_deg REAL;
+`,
+  },
 ];

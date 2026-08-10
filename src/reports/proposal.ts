@@ -229,6 +229,11 @@ export function buildProposalPdfHtml(data: ProposalData): string {
     <tr><td>Backfeed rule (120%)</td><td>${protection.backfeedPasses ? 'PASS' : 'FAIL'}</td></tr>
     <tr><td>SPD</td><td>${protection.spdType}</td></tr>
     ${
+      result.production.orientation
+        ? `<tr><td>PV array orientation</td><td>${f.number(result.production.orientation.tilt, 0)}° tilt · ${f.number(result.production.orientation.azimuth, 0)}° azimuth (factor ×${f.number(result.production.orientation.annualFactor, 2)})</td></tr>`
+        : ''
+    }
+    ${
       controller.minCurrentA > 0
         ? `<tr><td>Charge controller</td><td>${controller.recommendedType} · ${controller.selectedCurrentA ?? controller.minCurrentA} A</td></tr>`
         : ''

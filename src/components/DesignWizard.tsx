@@ -17,6 +17,7 @@ import { referenceInverterFor, REFERENCE_CONTROLLER } from '@/core/data/referenc
 import { designSystem } from '@/core/engine';
 import { estimateCost } from '@/core/formulas/costing';
 import { monthLabel } from '@/core/formulas/production';
+import { annualOptimalTilt, orientationFactors } from '@/core/formulas/tilt';
 import type {
   BatteryChemistry,
   BatterySpec,
@@ -136,6 +137,8 @@ export function DesignWizard(props: {
   );
   const [busbarRatingA, setBusbarRatingA] = useState<number | null>(initial?.busbarRatingA ?? null);
   const [mainBreakerA, setMainBreakerA] = useState<number | null>(initial?.mainBreakerA ?? null);
+  const [tilt, setTilt] = useState<number | null>(initial?.tiltDeg ?? null);
+  const [azimuth, setAzimuth] = useState<number | null>(initial?.azimuthDeg ?? null);
   const [manualPshOpen, setManualPshOpen] = useState(false);
 
   useEffect(() => {
@@ -160,6 +163,17 @@ export function DesignWizard(props: {
   const effectiveWinterPsh = winterPsh ?? effectiveLocation?.winterPsh ?? 4.0;
   const effectiveSummerPsh = summerPsh ?? effectiveLocation?.summerPsh ?? 6.0;
   const effectiveLatitude = effectiveLocation?.latitude ?? initial?.pshLocation?.latitude ?? 25;
+
+  const effectiveTilt = tilt ?? effectiveLocation?.recommendedTilt ?? annualOptimalTilt(effectiveLatitude, 'winter');
+  const effectiveAzimuth = azimuth ?? (effectiveLatitude >= 0 ? 180 : 0);
+  const recommendedTilt = annualOptimalTilt(effectiveLatitude, 'winter');
+  const tiltSensitivity = useMemo(() => {
+    const azimuthDeg = effectiveAzimuth;
+    return [0, 15, 30, 45, 60].map((t) => ({
+      tilt: t,
+      factor: orientationFactors(effectiveLatitude, t, azimuthDeg).annual,
+    }));
+  }, [effectiveLatitude, effectiveAzimuth]);
 
   const resolved = useMemo<NonNullable<SystemInput['selected']>>(() => {
     const panel = selectedPanelId
@@ -213,6 +227,8 @@ export function DesignWizard(props: {
       winterPsh: effectiveWinterPsh,
       summerPsh: effectiveSummerPsh,
       latitude: effectiveLatitude,
+      tilt: effectiveTilt,
+      azimuth: effectiveAzimuth,
       autonomyDays,
       chemistry,
       systemVoltageOverride: voltage === 'auto' ? undefined : (Number(voltage) as SystemVoltage),
@@ -249,6 +265,8 @@ export function DesignWizard(props: {
     effectiveWinterPsh,
     effectiveSummerPsh,
     effectiveLatitude,
+    effectiveTilt,
+    effectiveAzimuth,
     autonomyDays,
     chemistry,
     voltage,
@@ -358,6 +376,8 @@ export function DesignWizard(props: {
         acCableLengthM,
         busbarRatingA,
         mainBreakerA,
+        tiltDeg: tilt,
+        azimuthDeg: azimuth,
         selectedPanelId,
         selectedInverterId,
         selectedBatteryId,
@@ -806,6 +826,15 @@ export function DesignWizard(props: {
       busy={busy}
       standardsPolicy={standardsPolicy}
       onStandardsPolicyChange={setStandardsPolicy}
+      tilt={tilt}
+      setTilt={setTilt}
+      azimuth={azimuth}
+      setAzimuth={setAzimuth}
+      effectiveTilt={effectiveTilt}
+      effectiveAzimuth={effectiveAzimuth}
+      effectiveLatitude={effectiveLatitude}
+      recommendedTilt={recommendedTilt}
+      tiltSensitivity={tiltSensitivity}
     />
   );
 
@@ -917,8 +946,33 @@ function ResultsView(props: {
   busy: boolean;
   standardsPolicy: StandardsPolicy;
   onStandardsPolicyChange: (policy: StandardsPolicy) => void;
+  tilt: number | null;
+  setTilt: (value: number | null) => void;
+  azimuth: number | null;
+  setAzimuth: (value: number | null) => void;
+  effectiveTilt: number;
+  effectiveAzimuth: number;
+  effectiveLatitude: number;
+  recommendedTilt: number;
+  tiltSensitivity: { tilt: number; factor: number }[];
 }) {
-  const { result, error, onAutoSuggest, busy, standardsPolicy, onStandardsPolicyChange } = props;
+  const {
+    result,
+    error,
+    onAutoSuggest,
+    busy,
+    standardsPolicy,
+    onStandardsPolicyChange,
+    tilt,
+    setTilt,
+    azimuth,
+    setAzimuth,
+    effectiveTilt,
+    effectiveAzimuth,
+    effectiveLatitude,
+    recommendedTilt,
+    tiltSensitivity,
+  } = props;
   const theme = useTheme();
   const f = useUnitFormatters();
   const powerUnit = useSettingsStore((s) => s.units.power);
@@ -1107,6 +1161,71 @@ function ResultsView(props: {
                   </View>
                   <Text variant="labelSmall" style={styles.barLabel}>
                     {monthLabel(m.month)}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+        </Card.Content>
+      </Card>
+
+      <Card mode="outlined">
+        <Card.Content>
+          <Text variant="labelMedium" style={{ marginBottom: 6, color: theme.colors.onSurfaceVariant }}>
+            Tilt &amp; orientation
+          </Text>
+          <View style={styles.statRow}>
+            <NumberField
+              label="Array tilt"
+              value={tilt}
+              onChange={setTilt}
+              unit="°"
+              min={0}
+              max={60}
+              decimals={0}
+              helperText={`Recommended ${recommendedTilt}° for this latitude`}
+            />
+            <NumberField
+              label="Azimuth"
+              value={azimuth}
+              onChange={setAzimuth}
+              unit="°"
+              min={0}
+              max={360}
+              decimals={0}
+              helperText="0 = north · 180 = south"
+            />
+          </View>
+          <Text variant="bodySmall" style={{ marginTop: 8, color: theme.colors.onSurfaceVariant }}>
+            {effectiveAzimuth === (effectiveLatitude >= 0 ? 180 : 0)
+              ? `Array faces the equator at ${effectiveTilt}° tilt — optimal orientation.`
+              : `Array is ${result.production.orientation?.azimuthFromEquator ?? 0}° off equator-facing (yield factor ×${f.number(result.production.orientation?.annualFactor ?? 1, 2)}).`}
+          </Text>
+          <Text variant="bodySmall" style={{ marginTop: 8, color: theme.colors.onSurfaceVariant }}>
+            Annual yield vs tilt (current azimuth)
+          </Text>
+          <View style={styles.sensRow}>
+            {tiltSensitivity.map((s) => {
+              const heightPct = Math.max(6, s.factor * 100);
+              const active = Math.round(effectiveTilt) === s.tilt;
+              return (
+                <View key={s.tilt} style={styles.sensCol}>
+                  <Text variant="labelSmall" style={styles.sensValue}>
+                    {f.number(s.factor * 100, 0)}%
+                  </Text>
+                  <View style={styles.sensTrack}>
+                    <View
+                      style={[
+                        styles.sensFill,
+                        {
+                          height: `${heightPct}%`,
+                          backgroundColor: active ? theme.colors.primary : theme.colors.outline,
+                        },
+                      ]}
+                    />
+                  </View>
+                  <Text variant="labelSmall" style={styles.sensLabel}>
+                    {s.tilt}°
                   </Text>
                 </View>
               );
@@ -1339,6 +1458,38 @@ const styles = StyleSheet.create({
   },
   barLabel: {
     fontSize: 8,
+    color: '#8a97a0',
+    marginTop: 2,
+  },
+  sensRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 6,
+    height: 90,
+    marginTop: 4,
+  },
+  sensCol: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  sensValue: {
+    fontSize: 8,
+    color: '#8a97a0',
+    marginBottom: 2,
+  },
+  sensTrack: {
+    flex: 1,
+    width: '100%',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+  },
+  sensFill: {
+    width: '70%',
+    borderTopLeftRadius: 3,
+    borderTopRightRadius: 3,
+  },
+  sensLabel: {
+    fontSize: 9,
     color: '#8a97a0',
     marginTop: 2,
   },

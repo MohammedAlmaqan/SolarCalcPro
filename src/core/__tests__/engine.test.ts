@@ -97,6 +97,16 @@ describe('designSystem — end-to-end hybrid design', () => {
     expect(codes).not.toContain('CABLE-AMPACITY-PV');
     expect(result.cables.pvSource.ampacityPasses).toBe(true);
   });
+
+  it('threads tilt & azimuth into the production orientation', () => {
+    const oriented = designSystem({ ...hybridInput(), tilt: 30, azimuth: 180 });
+    expect(oriented.production.orientation).toBeDefined();
+    expect(oriented.production.orientation?.tilt).toBe(30);
+    expect(oriented.production.orientation?.azimuthFromEquator).toBe(0);
+    expect(
+      oriented.production.months.find((m) => m.month === 1)?.psh,
+    ).toBeGreaterThanOrEqual(result.production.months[0].psh);
+  });
 });
 
 describe('designSystem — on-grid design', () => {

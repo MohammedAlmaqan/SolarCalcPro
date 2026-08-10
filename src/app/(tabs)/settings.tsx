@@ -1,12 +1,36 @@
 import { useRouter } from 'expo-router';
+import { File, Paths } from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
+import * as Sharing from 'expo-sharing';
+import { useState } from 'react';
 import { Image, StyleSheet, View } from 'react-native';
-import { Appbar, Button, Card, Divider, List, Text, TextInput, useTheme } from 'react-native-paper';
+import {
+  Appbar,
+  Button,
+  Card,
+  Dialog,
+  Divider,
+  List,
+  Portal,
+  Snackbar,
+  Text,
+  TextInput,
+  useTheme,
+} from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { SegmentedField, NumberField } from '@/components/form';
 import { PshPicker } from '@/components/pickers';
 import { COMPANY_LOGO_DATA_URI } from '@/reports/companyLogoDataUri';
+import { SEED_MARKER_KEY } from '@/db';
+import { settingsRepo } from '@/db/repos/settings';
+import {
+  exportDatabase,
+  parseDatabaseBackup,
+  restoreDatabase,
+} from '@/db/backup';
+import { getDbService } from '@/store/dbService';
+import { useProjectStore } from '@/store/projects';
 import { useReferenceStore } from '@/store/reference';
 import {
   CURRENCY_LABELS,
@@ -20,8 +44,69 @@ export default function SettingsScreen() {
   const router = useRouter();
   const settings = useSettingsStore();
   const psh = useReferenceStore((s) => s.psh);
+  const refreshProjects = useProjectStore((s) => s.refresh);
+  const loadReference = useReferenceStore((s) => s.load);
+
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState('');
+  const [restoreError, setRestoreError] = useState('');
+  const [restoreDialog, setRestoreDialog] = useState(false);
 
   const logoUri = settings.companyProfile.logoDataUri || COMPANY_LOGO_DATA_URI;
+
+  const notify = (text: string) => {
+    setMessage(text);
+    setTimeout(() => setMessage(''), 3000);
+  };
+
+  const exportBackup = async () => {
+    setBusy(true);
+    try {
+      const json = await exportDatabase(getDbService());
+      const file = new File(Paths.cache, 'solarcalcpro-backup.json');
+      file.create({ overwrite: true, intermediates: true });
+      file.write(json);
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(file.uri, {
+          mimeType: 'application/json',
+          dialogTitle: 'Share full database backup',
+        });
+      }
+      notify('Full backup exported');
+    } catch (e) {
+      notify('Backup export failed');
+      console.error(e);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const pickRestore = async () => {
+    setRestoreDialog(false);
+    setBusy(true);
+    try {
+      const picked = await File.pickFileAsync({ mimeTypes: ['application/json'] });
+      if (picked.canceled || !picked.result) return;
+      const parsed = parseDatabaseBackup(picked.result.textSync());
+      await restoreDatabase(getDbService(), parsed);
+      await settingsRepo(getDbService()).remove(SEED_MARKER_KEY);
+      await settings.load();
+      await refreshProjects();
+      await loadReference();
+      notify('Full backup restored');
+    } catch (e) {
+      setRestoreError(e instanceof Error ? e.message : 'Restore failed');
+      setRestoreDialog(true);
+      console.error(e);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const openRestoreDialog = () => {
+    setRestoreError('');
+    setRestoreDialog(true);
+  };
 
   const pickLogo = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -231,6 +316,35 @@ export default function SettingsScreen() {
         </Card>
 
         <Card mode="outlined">
+          <Card.Title title="Data & backup" titleVariant="titleMedium" />
+          <Divider />
+          <Card.Content>
+            <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginBottom: 8 }}>
+              A full backup includes every project, design, catalog entry and setting.
+            </Text>
+            <View style={styles.backupRow}>
+              <Button
+                mode="contained"
+                icon="database-export-outline"
+                loading={busy}
+                disabled={busy}
+                onPress={exportBackup}
+              >
+                Export full backup
+              </Button>
+              <Button
+                mode="outlined"
+                icon="database-import-outline"
+                disabled={busy}
+                onPress={openRestoreDialog}
+              >
+                Restore full backup
+              </Button>
+            </View>
+          </Card.Content>
+        </Card>
+
+        <Card mode="outlined">
           <Card.Title title="Standards & compliance" titleVariant="titleMedium" />
           <Divider />
           <Card.Content>
@@ -261,6 +375,34 @@ export default function SettingsScreen() {
           />
         </Card>
       </View>
+
+      <Portal>
+        <Dialog visible={restoreDialog} onDismiss={() => setRestoreDialog(false)}>
+          <Dialog.Title>Restore full backup</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium">
+              {restoreError
+                ? restoreError
+                : 'This replaces ALL current projects, designs, catalog entries and settings with the backup file. Continue?'}
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setRestoreDialog(false)}>Cancel</Button>
+            <Button
+              onPress={pickRestore}
+              icon="file-import-outline"
+              loading={busy}
+              disabled={busy}
+            >
+              Choose backup file
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+
+      <Snackbar visible={!!message} onDismiss={() => setMessage('')} duration={3000}>
+        {message}
+      </Snackbar>
     </SafeAreaView>
   );
 }
@@ -301,5 +443,10 @@ const styles = StyleSheet.create({
   logoActions: {
     flex: 1,
     gap: 4,
+  },
+  backupRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
   },
 });

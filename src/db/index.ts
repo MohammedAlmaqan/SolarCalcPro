@@ -8,7 +8,7 @@ import type { DatabaseLike } from './types';
 export const DB_NAME = 'solarcalcpro.db';
 
 /** Marker key used to seed reference data exactly once per install. */
-const SEED_MARKER_KEY = 'meta.seed_version';
+export const SEED_MARKER_KEY = 'meta.seed_version';
 
 let cached: DatabaseLike | null = null;
 

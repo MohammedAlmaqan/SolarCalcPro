@@ -150,4 +150,11 @@ ALTER TABLE scenarios ADD COLUMN azimuth_deg REAL;
 ALTER TABLE scenarios ADD COLUMN shading_factor REAL;
 `,
   },
+  {
+    version: 6,
+    up: `
+ALTER TABLE scenarios ADD COLUMN fuel_price_per_l REAL;
+ALTER TABLE scenarios ADD COLUMN generator_charge_hours_per_day REAL;
+`,
+  },
 ];

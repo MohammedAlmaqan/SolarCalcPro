@@ -40,6 +40,8 @@ export interface ImportedScenario {
   tiltDeg: number | null;
   azimuthDeg: number | null;
   shadingFactor: number | null;
+  fuelPricePerL: number | null;
+  generatorChargeHoursPerDay: number | null;
   selectedPanelId: string | null;
   selectedInverterId: string | null;
   selectedBatteryId: string | null;
@@ -90,6 +92,8 @@ export function exportProject(project: ProjectWithScenarios): string {
         tiltDeg: scenario.tiltDeg,
         azimuthDeg: scenario.azimuthDeg,
         shadingFactor: scenario.shadingFactor,
+        fuelPricePerL: scenario.fuelPricePerL,
+        generatorChargeHoursPerDay: scenario.generatorChargeHoursPerDay,
         selectedPanelId: scenario.selectedPanelId,
         selectedInverterId: scenario.selectedInverterId,
         selectedBatteryId: scenario.selectedBatteryId,
@@ -166,6 +170,8 @@ export function parseProjectImport(text: string): ProjectExport {
         tiltDeg: optionalNumber(s.tiltDeg),
         azimuthDeg: optionalNumber(s.azimuthDeg),
         shadingFactor: optionalNumber(s.shadingFactor),
+        fuelPricePerL: optionalNumber(s.fuelPricePerL),
+        generatorChargeHoursPerDay: optionalNumber(s.generatorChargeHoursPerDay),
         selectedPanelId: typeof s.selectedPanelId === 'string' ? s.selectedPanelId : null,
         selectedInverterId: typeof s.selectedInverterId === 'string' ? s.selectedInverterId : null,
         selectedBatteryId: typeof s.selectedBatteryId === 'string' ? s.selectedBatteryId : null,

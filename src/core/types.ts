@@ -187,6 +187,10 @@ export interface SystemInput {
   totalLoadIsAc?: boolean;
   /** Rooftop cable temperature derating factor (0–1), default 0.6. */
   tempDeratingFactor?: number;
+  /** Daily recharge window for a hybrid backup generator (h/day), default 4. */
+  generatorChargeHoursPerDay?: number;
+  /** Fuel price (currency/L) to include a generator running-cost estimate. */
+  fuelPricePerL?: number;
   /** One-way PV source cable length (m), default 10. */
   pvCableLengthM?: number;
   /** One-way DC output (battery↔inverter) cable length (m), default 2. */
@@ -319,6 +323,21 @@ export interface ProtectionResult {
   spdType: 'Type 1' | 'Type 2' | 'none';
 }
 
+export interface GeneratorResult {
+  /** Battery charger power the generator must supply (kW). */
+  requiredChargerKw: number;
+  /** Recommended generator continuous rating (kW), rounded to a standard size. */
+  recommendedKw: number;
+  /** Estimated diesel consumption (L/day) covering the daily energy. */
+  dailyFuelL: number;
+  /** Estimated annual fuel consumption (L/yr). */
+  annualFuelL: number;
+  /** Annual fuel cost (currency/yr); null when no fuel price supplied. */
+  annualFuelCost: number | null;
+  /** Estimated generator running time per day (h) at nominal load. */
+  runtimeHoursPerDay: number;
+}
+
 export interface ComplianceResult {
   arrayVocColdV: number;
   arrayVocWithinInverterLimit: boolean;
@@ -340,6 +359,8 @@ export interface DesignResult {
   protection: ProtectionResult;
   compliance: ComplianceResult;
   production: ProductionResult;
+  /** Present for hybrid/off-grid systems with a backup generator. */
+  generator?: GeneratorResult;
   warnings: Warning[];
   audit: AuditStep[];
 }

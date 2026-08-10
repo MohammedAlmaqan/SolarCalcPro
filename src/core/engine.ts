@@ -14,6 +14,7 @@ import {
   DEFAULT_DC_VOLTAGE_DROP_PCT,
 } from './formulas/cable';
 import { sizeChargeController, COLD_TEMP_VOC_MULTIPLIER } from './formulas/chargeController';
+import { sizeGenerator } from './formulas/generator';
 import { sizeInverter } from './formulas/inverter';
 import { calculateDailyLoad, calculateTotalDailyLoad } from './formulas/load';
 import { sizeProtection } from './formulas/protection';
@@ -161,6 +162,21 @@ export function designSystem(input: SystemInput): DesignResult {
       message: 'Days of autonomy is 0 — the battery bank will provide no backup.',
     });
   }
+
+  // 5b. Backup generator (hybrid/off-grid only) -----------------------------
+  const generator = isOnGrid
+    ? undefined
+    : sizeGenerator(
+        {
+          peakSimultaneousWatts: dailyLoad.peakSimultaneousWatts,
+          dailyEnergyKwh: dailyLoad.dcEquivalentWhPerDay / 1000,
+          batteryCapacityKwh: batteryResult.actualCapacityKwh,
+          depthOfDischarge: batteryResult.depthOfDischarge,
+          chargeHoursPerDay: input.generatorChargeHoursPerDay,
+          fuelPricePerL: input.fuelPricePerL,
+        },
+        audit,
+      );
 
   // 6. Charge controller ---------------------------------------------------
   const controllerResult = isOnGrid
@@ -359,6 +375,7 @@ export function designSystem(input: SystemInput): DesignResult {
     protection,
     compliance,
     production,
+    generator,
     warnings,
     audit: audit.all,
   };

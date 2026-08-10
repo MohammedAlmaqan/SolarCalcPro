@@ -143,6 +143,10 @@ export function DesignWizard(props: {
   const [shadingLossPct, setShadingLossPct] = useState<number | null>(
     initial?.shadingFactor != null ? Math.round((1 - initial.shadingFactor) * 100) : null,
   );
+  const [fuelPricePerL, setFuelPricePerL] = useState<number | null>(initial?.fuelPricePerL ?? null);
+  const [generatorChargeHoursPerDay, setGeneratorChargeHoursPerDay] = useState<number | null>(
+    initial?.generatorChargeHoursPerDay ?? null,
+  );
   const [manualPshOpen, setManualPshOpen] = useState(false);
 
   useEffect(() => {
@@ -236,6 +240,8 @@ export function DesignWizard(props: {
       tilt: effectiveTilt,
       azimuth: effectiveAzimuth,
       shadingFactor: effectiveShadingFactor,
+      fuelPricePerL: fuelPricePerL ?? undefined,
+      generatorChargeHoursPerDay: generatorChargeHoursPerDay ?? undefined,
       autonomyDays,
       chemistry,
       systemVoltageOverride: voltage === 'auto' ? undefined : (Number(voltage) as SystemVoltage),
@@ -275,6 +281,8 @@ export function DesignWizard(props: {
     effectiveTilt,
     effectiveAzimuth,
     effectiveShadingFactor,
+    fuelPricePerL,
+    generatorChargeHoursPerDay,
     autonomyDays,
     chemistry,
     voltage,
@@ -387,6 +395,8 @@ export function DesignWizard(props: {
         tiltDeg: tilt,
         azimuthDeg: azimuth,
         shadingFactor: shadingLossPct === null ? null : Math.max(0.5, (100 - shadingLossPct) / 100),
+        fuelPricePerL,
+        generatorChargeHoursPerDay,
         selectedPanelId,
         selectedInverterId,
         selectedBatteryId,
@@ -846,6 +856,10 @@ export function DesignWizard(props: {
       tiltSensitivity={tiltSensitivity}
       shadingLossPct={shadingLossPct}
       setShadingLossPct={setShadingLossPct}
+      fuelPricePerL={fuelPricePerL}
+      setFuelPricePerL={setFuelPricePerL}
+      generatorChargeHoursPerDay={generatorChargeHoursPerDay}
+      setGeneratorChargeHoursPerDay={setGeneratorChargeHoursPerDay}
     />
   );
 
@@ -968,6 +982,10 @@ function ResultsView(props: {
   tiltSensitivity: { tilt: number; factor: number }[];
   shadingLossPct: number | null;
   setShadingLossPct: (value: number | null) => void;
+  fuelPricePerL: number | null;
+  setFuelPricePerL: (value: number | null) => void;
+  generatorChargeHoursPerDay: number | null;
+  setGeneratorChargeHoursPerDay: (value: number | null) => void;
 }) {
   const {
     result,
@@ -987,6 +1005,10 @@ function ResultsView(props: {
     tiltSensitivity,
     shadingLossPct,
     setShadingLossPct,
+    fuelPricePerL,
+    setFuelPricePerL,
+    generatorChargeHoursPerDay,
+    setGeneratorChargeHoursPerDay,
   } = props;
   const theme = useTheme();
   const f = useUnitFormatters();
@@ -1433,6 +1455,58 @@ function ResultsView(props: {
               )}
             </Card.Content>
           </Card>
+
+          {result.generator ? (
+            <Card mode="outlined">
+              <Card.Content>
+                <Text variant="labelMedium" style={{ marginBottom: 6, color: theme.colors.onSurfaceVariant }}>
+                  Backup generator (hybrid)
+                </Text>
+                <KeyValueRow
+                  label="Recommended rating"
+                  value={`${f.number(result.generator.recommendedKw, 0)} kW`}
+                />
+                <KeyValueRow
+                  label="Required battery charger"
+                  value={`${f.number(result.generator.requiredChargerKw, 1)} kW`}
+                />
+                <KeyValueRow
+                  label="Estimated runtime"
+                  value={`${f.number(result.generator.runtimeHoursPerDay, 1)} h/day`}
+                />
+                <KeyValueRow
+                  label="Fuel consumption"
+                  value={`${f.number(result.generator.dailyFuelL, 1)} L/day · ${f.number(result.generator.annualFuelL, 0)} L/yr`}
+                />
+                {result.generator.annualFuelCost !== null ? (
+                  <KeyValueRow
+                    label="Annual fuel cost"
+                    value={money(result.generator.annualFuelCost)}
+                  />
+                ) : null}
+                <NumberField
+                  label="Diesel price"
+                  value={fuelPricePerL}
+                  onChange={setFuelPricePerL}
+                  unit={`${currencySymbol}/L`}
+                  helperText="Optional — adds the generator running cost to the estimate."
+                  decimals={2}
+                  min={0}
+                  max={5}
+                />
+                <NumberField
+                  label="Recharge window"
+                  value={generatorChargeHoursPerDay}
+                  onChange={setGeneratorChargeHoursPerDay}
+                  unit="h/day"
+                  helperText="Hours per day the generator runs to recharge the battery bank. Lower = larger charger."
+                  decimals={1}
+                  min={1}
+                  max={24}
+                />
+              </Card.Content>
+            </Card>
+          ) : null}
 
           <NumberField
             label="Grid electric rate"

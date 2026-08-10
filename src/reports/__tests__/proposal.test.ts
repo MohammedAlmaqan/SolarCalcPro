@@ -78,6 +78,8 @@ function proposalData(overrides?: Partial<Parameters<typeof buildProposalPdfHtml
       tiltDeg: null,
       azimuthDeg: null,
       shadingFactor: null,
+      fuelPricePerL: null,
+      generatorChargeHoursPerDay: null,
       selectedPanelId: null,
       selectedInverterId: null,
       selectedBatteryId: null,

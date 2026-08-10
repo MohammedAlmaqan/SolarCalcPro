@@ -107,6 +107,14 @@ describe('designSystem — end-to-end hybrid design', () => {
       oriented.production.months.find((m) => m.month === 1)?.psh,
     ).toBeGreaterThanOrEqual(result.production.months[0].psh);
   });
+
+  it('sizes a backup generator for the hybrid system', () => {
+    expect(result.generator).toBeDefined();
+    expect(result.generator!.recommendedKw).toBeGreaterThan(0);
+    expect(result.generator!.requiredChargerKw).toBeGreaterThan(0);
+    expect(result.generator!.dailyFuelL).toBeGreaterThan(0);
+    expect(result.audit.some((s) => s.id === 'generator.rating')).toBe(true);
+  });
 });
 
 describe('designSystem — on-grid design', () => {
@@ -123,6 +131,10 @@ describe('designSystem — on-grid design', () => {
     expect(result.battery.batteryCount).toBe(0);
     const codes = result.warnings.map((w) => w.code);
     expect(codes).toContain('BATTERY-NOT-REQUIRED');
+  });
+
+  it('omits the backup generator for on-grid', () => {
+    expect(result.generator).toBeUndefined();
   });
 
   it('sizes the array against the grid-tie inverter MPPT', () => {

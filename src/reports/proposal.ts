@@ -6,6 +6,7 @@ import { createFormatters } from '../utils/format';
 import { COMPANY_LOGO_DATA_URI } from './companyLogoDataUri';
 import { renderSldHtml } from './pdfTemplate';
 import { monthLabel } from '../core/formulas/production';
+import { isEmptySignature } from '../core/signature';
 
 export interface ProposalData {
   projectName: string;
@@ -21,6 +22,8 @@ export interface ProposalData {
   cost: CostEstimate;
   profile: CompanyProfile;
   units?: UnitSettings;
+  /** Optional base64 site-photo data URIs shown on a dedicated page. */
+  photos?: string[];
 }
 
 const DEFAULT_TERMS = [
@@ -109,8 +112,10 @@ export function buildProposalPdfHtml(data: ProposalData): string {
     )
     .join('');
 
-  // Page 4: terms + signature
+  // Site photos page + terms + signature
   const logoUri = profile.logoDataUri || COMPANY_LOGO_DATA_URI;
+  const photos = data.photos ?? [];
+  const hasSignature = !isEmptySignature(profile.signatureSvg);
 
   return `<!DOCTYPE html>
 <html>
@@ -163,6 +168,10 @@ export function buildProposalPdfHtml(data: ProposalData): string {
   .signature { margin-top: 32px; display: flex; justify-content: space-between; gap: 24px; }
   .signature .sig { flex: 1; }
   .sig-line { border-top: 1px solid #131c20; margin-top: 46px; padding-top: 4px; font-size: 10px; color: #555; }
+  .signature svg { height: 84px; width: 240px; }
+  .photos { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+  .photos .photo { flex: 1 1 40%; max-width: 48%; border: 1px solid #e0e8ec; border-radius: 6px; overflow: hidden; background: #fafcfe; }
+  .photos .photo img { width: 100%; height: 150px; object-fit: cover; display: block; }
   .footer { margin-top: 24px; font-size: 8px; color: #999; border-top: 1px solid #e0e8ec; padding-top: 6px; }
   .cover-box { border: 1px solid #e0e8ec; border-radius: 8px; padding: 14px 16px; margin-top: 20px; background: #fafcfe; }
 </style>
@@ -361,7 +370,25 @@ export function buildProposalPdfHtml(data: ProposalData): string {
   </ul>
   </div>
 
-  <!-- Page 4: terms + signature -->
+  ${
+    photos.length > 0
+      ? `
+  <!-- Site photos -->
+  <div class="page">
+  <h2>Site photos</h2>
+  <div class="photos">
+    ${photos
+      .map(
+        (uri) => `
+    <div class="photo"><img src="${uri}" alt="Site photo" /></div>`,
+      )
+      .join('')}
+  </div>
+  </div>`
+      : ''
+  }
+
+  <!-- Terms + signature -->
   <div class="page">
   <h2>Terms &amp; conditions</h2>
   <ol class="terms">
@@ -371,6 +398,7 @@ export function buildProposalPdfHtml(data: ProposalData): string {
 
   <div class="signature">
     <div class="sig">
+      ${hasSignature ? profile.signatureSvg : ''}
       <div class="sig-line">${esc(profile.engineerName || 'Prepared by')} — ${esc(profile.companyName || '')}</div>
     </div>
     <div class="sig">

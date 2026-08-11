@@ -253,6 +253,25 @@ describe('report builders (pure TS)', () => {
     expect(parsed.project.scenarios[0].designResult).toBeTruthy();
   });
 
+  test('project export → import round-trips site photos', () => {
+    const project: ProjectWithScenarios = {
+      id: 'p1',
+      name: 'Cabin',
+      clientName: '',
+      notes: '',
+      createdAt: '2026-01-01',
+      updatedAt: '2026-01-01',
+      scenarios: [],
+    };
+
+    const photos = [
+      'data:image/jpeg;base64,AAAA',
+      'data:image/png;base64,BBBB',
+    ];
+    const parsed = parseProjectImport(exportProject(project, photos));
+    expect(parsed.project.photos).toEqual(photos);
+  });
+
   test('parseProjectImport rejects non-backup JSON', () => {
     expect(() => parseProjectImport('{"hello": 1}')).toThrow(/not a SlorCalcPro/);
     expect(() => parseProjectImport('not json')).toThrow(/Invalid JSON/);

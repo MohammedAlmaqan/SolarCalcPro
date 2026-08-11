@@ -20,6 +20,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { ScenarioRecord } from '@/db/repos/projects';
+import { photoRepo } from '@/db/repos/photos';
 import { estimateCost } from '@/core/formulas/costing';
 import { buildBom } from '@/reports/bom';
 import { compareScenarios } from '@/reports/comparison';
@@ -28,6 +29,7 @@ import { exportProject, parseProjectImport } from '@/reports/jsonIO';
 import { buildPdfHtml } from '@/reports/pdfTemplate';
 import { buildProposalPdfHtml } from '@/reports/proposal';
 import { buildSldDiagram } from '@/reports/sld';
+import { getDbService } from '@/store/dbService';
 import { useProjectStore } from '@/store/projects';
 
 import { SldView } from '../../components/SldView';
@@ -133,6 +135,9 @@ export default function ReportsScreen() {
         electricRate,
         currency: CURRENCY_SYMBOLS[currency],
       });
+      const photos = (await photoRepo(getDbService()).listByProject(project.id)).map(
+        (photo) => photo.dataUri,
+      );
       const html = buildProposalPdfHtml({
         projectName: project.name,
         clientName: project.clientName,
@@ -146,6 +151,7 @@ export default function ReportsScreen() {
         cost,
         profile: companyProfile,
         units,
+        photos,
       });
       const { uri } = await Print.printToFileAsync({ html });
       if (await Sharing.isAvailableAsync()) {
@@ -189,9 +195,12 @@ export default function ReportsScreen() {
     if (!project) return;
     setBusy(true);
     try {
+      const photos = (await photoRepo(getDbService()).listByProject(project.id)).map(
+        (photo) => photo.dataUri,
+      );
       const file = new File(Paths.cache, `${slugify(project.name)}-backup.json`);
       file.create({ overwrite: true, intermediates: true });
-      file.write(exportProject(project));
+      file.write(exportProject(project, photos));
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(file.uri, {
           mimeType: 'application/json',

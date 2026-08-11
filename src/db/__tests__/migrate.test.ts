@@ -20,6 +20,7 @@ describe('migrate', () => {
         'scenarios',
         'scenario_loads',
         'settings',
+        'project_photos',
       ]),
     );
   });

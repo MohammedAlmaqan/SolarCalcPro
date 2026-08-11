@@ -32,6 +32,7 @@ describe('useSettingsStore — entitlement tier', () => {
         email: '',
         address: '',
         logoDataUri: '',
+        signatureSvg: '',
       },
       tier: 'free',
     });

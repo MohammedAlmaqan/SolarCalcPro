@@ -163,4 +163,16 @@ ALTER TABLE scenarios ADD COLUMN generator_charge_hours_per_day REAL;
 ALTER TABLE psh_locations ADD COLUMN monthly_psh_json TEXT;
 `,
   },
+  {
+    version: 8,
+    up: `
+CREATE TABLE IF NOT EXISTS project_photos (
+  id         TEXT PRIMARY KEY,
+  project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  position   INTEGER NOT NULL,
+  data_uri   TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_project_photos_project ON project_photos(project_id);
+`,
+  },
 ];

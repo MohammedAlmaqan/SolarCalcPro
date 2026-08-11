@@ -1,6 +1,7 @@
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 import { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, View } from 'react-native';
 import {
   Appbar,
   Badge,
@@ -17,7 +18,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { ScenarioPatch, ScenarioRecord } from '@/db/repos/projects';
+import { photoRepo, type ProjectPhoto } from '@/db/repos/photos';
+import { getDbService } from '@/store/dbService';
 import { useProjectStore } from '@/store/projects';
+import { ProGate } from '@/components/upgrade';
 
 export default function ProjectDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -40,12 +44,41 @@ export default function ProjectDetailScreen() {
   const [scenarioMenu, setScenarioMenu] = useState<string | null>(null);
   const [deletingScenario, setDeletingScenario] = useState<ScenarioRecord | null>(null);
   const [deletingProject, setDeletingProject] = useState(false);
+  const [photos, setPhotos] = useState<ProjectPhoto[]>([]);
+
+  const refreshPhotos = useCallback(() => {
+    if (!id) return;
+    photoRepo(getDbService())
+      .listByProject(id)
+      .then(setPhotos)
+      .catch((e) => console.error('Failed to load site photos', e));
+  }, [id]);
 
   useFocusEffect(
     useCallback(() => {
       if (id) loadProject(id).catch((e) => console.error('Failed to load project', e));
-    }, [id, loadProject]),
+      refreshPhotos();
+    }, [id, loadProject, refreshPhotos]),
   );
+
+  const pickPhoto = async () => {
+    if (!id) return;
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.7,
+      base64: true,
+    });
+    if (result.canceled || !result.assets[0]?.base64) return;
+    const asset = result.assets[0];
+    const dataUri = `data:${asset.mimeType ?? 'image/jpeg'};base64,${asset.base64}`;
+    const added = await photoRepo(getDbService()).add(id, dataUri);
+    setPhotos((prev) => [...prev, added]);
+  };
+
+  const removePhoto = async (photoId: string) => {
+    await photoRepo(getDbService()).remove(photoId);
+    setPhotos((prev) => prev.filter((p) => p.id !== photoId));
+  };
 
   const openRename = () => {
     setProjectMenu(false);
@@ -281,6 +314,46 @@ export default function ProjectDetailScreen() {
           </Text>
         ) : null}
 
+        <ProGate feature="sitePhotos">
+          <Card mode="outlined">
+            <Card.Title title="Site photos" titleVariant="titleMedium" />
+            <Card.Content>
+              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                Site photos are attached to the proposal PDF for your client.
+              </Text>
+              {photos.length > 0 ? (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.photoStrip}
+                >
+                  {photos.map((photo) => (
+                    <View key={photo.id} style={styles.photoItem}>
+                      <Image source={{ uri: photo.dataUri }} style={styles.photoImage} />
+                      <IconButton
+                        icon="close-circle"
+                        iconColor={theme.colors.error}
+                        size={20}
+                        style={styles.photoRemove}
+                        onPress={() => removePhoto(photo.id).catch((e) => console.error(e))}
+                        accessibilityLabel="Remove site photo"
+                      />
+                    </View>
+                  ))}
+                </ScrollView>
+              ) : null}
+              <Button
+                mode="contained-tonal"
+                icon="camera-plus-outline"
+                onPress={pickPhoto}
+                compact
+              >
+                Add site photo
+              </Button>
+            </Card.Content>
+          </Card>
+        </ProGate>
+
         <View style={styles.scenarioHeader}>
           <Text variant="titleMedium">Scenarios</Text>
           <Button
@@ -411,5 +484,24 @@ const styles = StyleSheet.create({
   },
   detailsContent: {
     gap: 8,
+  },
+  photoStrip: {
+    marginVertical: 8,
+  },
+  photoItem: {
+    position: 'relative',
+    marginRight: 8,
+  },
+  photoImage: {
+    width: 140,
+    height: 90,
+    borderRadius: 8,
+    backgroundColor: 'rgba(0,0,0,0.06)',
+  },
+  photoRemove: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    backgroundColor: '#fff',
   },
 });

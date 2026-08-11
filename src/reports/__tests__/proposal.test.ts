@@ -107,6 +107,7 @@ function proposalData(overrides?: Partial<Parameters<typeof buildProposalPdfHtml
       email: 'design@desertsolar.test',
       address: 'King Fahd Rd, Riyadh',
       logoDataUri: '',
+      signatureSvg: '',
     },
   };
   return { ...base, ...overrides };
@@ -206,6 +207,34 @@ describe('buildProposalPdfHtml — structured proposal', () => {
   it('includes the single-line diagram section', () => {
     const html = buildProposalPdfHtml(proposalData());
     expect(html).toContain('Single-line diagram');
+  });
+
+  it('omits the site photos page when no photos are attached', () => {
+    const html = buildProposalPdfHtml(proposalData({ photos: [] }));
+    expect(html).not.toContain('Site photos');
+  });
+
+  it('renders attached site photos on a dedicated page', () => {
+    const html = buildProposalPdfHtml(
+      proposalData({ photos: ['data:image/jpeg;base64,AAAA', 'data:image/png;base64,BBBB'] }),
+    );
+    expect(html).toContain('Site photos');
+    expect(html).toContain('data:image/jpeg;base64,AAAA');
+    expect(html).toContain('data:image/png;base64,BBBB');
+  });
+
+  it('embeds the electronic signature when set', () => {
+    const signatureSvg =
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 300"><path d="M 1.0 2.0 L 3.0 4.0" /></svg>';
+    const html = buildProposalPdfHtml(
+      proposalData({ profile: { ...proposalData().profile, signatureSvg } }),
+    );
+    expect(html).toContain(signatureSvg);
+  });
+
+  it('omits the signature image when no signature is set', () => {
+    const html = buildProposalPdfHtml(proposalData());
+    expect(html).not.toMatch(/<svg/);
   });
 });
 

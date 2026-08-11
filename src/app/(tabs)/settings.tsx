@@ -18,9 +18,11 @@ import {
   useTheme,
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { SvgXml } from 'react-native-svg';
 
 import { SegmentedField, NumberField } from '@/components/form';
 import { PshPicker } from '@/components/pickers';
+import { SignaturePad } from '@/components/SignaturePad';
 import { ProGate, useUpgrade } from '@/components/upgrade';
 import { FEATURE_REGISTRY } from '@/core/capabilities';
 import { COMPANY_LOGO_DATA_URI } from '@/reports/companyLogoDataUri';
@@ -54,8 +56,22 @@ export default function SettingsScreen() {
   const [message, setMessage] = useState('');
   const [restoreError, setRestoreError] = useState('');
   const [restoreDialog, setRestoreDialog] = useState(false);
+  const [signatureDialog, setSignatureDialog] = useState(false);
+  const [signatureSvg, setSignatureSvg] = useState('');
+  const [signatureHasInk, setSignatureHasInk] = useState(false);
 
   const logoUri = settings.companyProfile.logoDataUri || COMPANY_LOGO_DATA_URI;
+
+  const openSignatureDialog = () => {
+    setSignatureSvg('');
+    setSignatureHasInk(false);
+    setSignatureDialog(true);
+  };
+
+  const saveSignature = async () => {
+    await settings.setCompanyProfile({ signatureSvg });
+    setSignatureDialog(false);
+  };
 
   const notify = (text: string) => {
     setMessage(text);
@@ -333,6 +349,52 @@ export default function SettingsScreen() {
               onChangeText={(v) => settings.setCompanyProfile({ address: v })}
               style={styles.input}
             />
+            <ProGate feature="sitePhotos">
+              <Divider style={styles.signatureDivider} />
+              <Text variant="labelLarge">Electronic signature</Text>
+              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                Signed onto the acceptance block of every proposal PDF.
+              </Text>
+              {settings.companyProfile.signatureSvg ? (
+                <>
+                  <View style={styles.signaturePreview}>
+                    <SvgXml
+                      xml={settings.companyProfile.signatureSvg}
+                      width="100%"
+                      height={72}
+                      preserveAspectRatio="xMidYMid meet"
+                    />
+                  </View>
+                  <View style={styles.signatureActions}>
+                    <Button
+                      mode="text"
+                      icon="pencil-outline"
+                      onPress={openSignatureDialog}
+                      compact
+                    >
+                      Redraw
+                    </Button>
+                    <Button
+                      mode="text"
+                      icon="close-circle"
+                      onPress={() => settings.setCompanyProfile({ signatureSvg: '' })}
+                      compact
+                    >
+                      Clear
+                    </Button>
+                  </View>
+                </>
+              ) : (
+                <Button
+                  mode="contained-tonal"
+                  icon="draw"
+                  onPress={openSignatureDialog}
+                  style={styles.signatureAddButton}
+                >
+                  Draw signature
+                </Button>
+              )}
+            </ProGate>
           </Card.Content>
           </Card>
         </ProGate>
@@ -446,6 +508,29 @@ export default function SettingsScreen() {
             </Button>
           </Dialog.Actions>
         </Dialog>
+
+        <Dialog visible={signatureDialog} onDismiss={() => setSignatureDialog(false)}>
+          <Dialog.Title>Draw your signature</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+              Sign with your finger inside the box. The signature is stored on this device.
+            </Text>
+            <View style={styles.signaturePadWrap}>
+              <SignaturePad
+                onChange={(svg, hasInk) => {
+                  setSignatureSvg(svg);
+                  setSignatureHasInk(hasInk);
+                }}
+              />
+            </View>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setSignatureDialog(false)}>Cancel</Button>
+            <Button disabled={!signatureHasInk} onPress={saveSignature}>
+              Use signature
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
       </Portal>
 
       <Snackbar visible={!!message} onDismiss={() => setMessage('')} duration={3000}>
@@ -491,6 +576,30 @@ const styles = StyleSheet.create({
   logoActions: {
     flex: 1,
     gap: 4,
+  },
+  signatureDivider: {
+    marginVertical: 14,
+  },
+  signaturePreview: {
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.15)',
+    borderRadius: 6,
+    backgroundColor: '#fff',
+    overflow: 'hidden',
+  },
+  signatureActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 4,
+  },
+  signatureAddButton: {
+    marginTop: 8,
+    alignSelf: 'flex-start',
+  },
+  signaturePadWrap: {
+    marginTop: 12,
   },
   backupRow: {
     flexDirection: 'row',

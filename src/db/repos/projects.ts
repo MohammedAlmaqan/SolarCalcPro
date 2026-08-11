@@ -12,6 +12,7 @@ import type { PshLocation } from '../../data/types';
 import { newId } from '../../utils/id';
 import type { DatabaseLike } from '../types';
 import { catalogRepo } from './catalog';
+import { photoRepo } from './photos';
 import { pshRepo } from './psh';
 
 export interface ProjectRecord {
@@ -456,6 +457,7 @@ export function projectRepo(db: DatabaseLike): ProjectRepo {
     duplicateProject: async (id) => {
       const source = await (await projectRepo(db)).getProject(id);
       if (!source) throw new Error(`Project not found: ${id}`);
+      const photos = await photoRepo(db).listByProject(id);
       const projectId = newId();
       await db.withExclusiveTransactionAsync(async (txn) => {
         await txn.runAsync(
@@ -522,6 +524,13 @@ export function projectRepo(db: DatabaseLike): ProjectRepo {
             ],
           );
           await insertLoads(txn, scenarioId, scenario.loads);
+        }
+        for (const photo of photos) {
+          await txn.runAsync(
+            `INSERT INTO project_photos (id, project_id, position, data_uri)
+             VALUES (?, ?, ?, ?)`,
+            [newId(), projectId, photo.position, photo.dataUri],
+          );
         }
       });
       const project = await (await projectRepo(db)).getProject(projectId);
@@ -599,6 +608,13 @@ export function projectRepo(db: DatabaseLike): ProjectRepo {
             ],
           );
           await insertLoads(txn, scenarioId, scenario.loads);
+        }
+        for (const photo of backup.project.photos) {
+          await txn.runAsync(
+            `INSERT INTO project_photos (id, project_id, position, data_uri)
+             VALUES (?, ?, ?, ?)`,
+            [newId(), projectId, 0, photo],
+          );
         }
       });
       const imported = await (await projectRepo(db)).getProject(projectId);

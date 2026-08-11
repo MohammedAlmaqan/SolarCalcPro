@@ -39,6 +39,8 @@ export interface CompanyProfile {
   address: string;
   /** Optional uploaded logo as a base64 data URI; falls back to the bundled logo. */
   logoDataUri: string;
+  /** Electronic signature as inline SVG markup used to sign proposals. */
+  signatureSvg: string;
 }
 
 export const DEFAULT_COMPANY_PROFILE: CompanyProfile = {
@@ -49,6 +51,7 @@ export const DEFAULT_COMPANY_PROFILE: CompanyProfile = {
   email: '',
   address: '',
   logoDataUri: '',
+  signatureSvg: '',
 };
 
 export const CURRENCY_SYMBOLS: Record<CurrencyCode, string> = {

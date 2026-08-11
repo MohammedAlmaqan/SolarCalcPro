@@ -9,6 +9,7 @@ const TABLES = [
   'psh_locations',
   'appliance_presets',
   'projects',
+  'project_photos',
   'scenarios',
   'scenario_loads',
   'settings',

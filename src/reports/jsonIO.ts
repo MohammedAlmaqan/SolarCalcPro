@@ -2,7 +2,7 @@ import type { LoadItem, LoadMode } from '../core/types';
 import type { ProjectWithScenarios } from '../db/repos/projects';
 
 export const EXPORT_FORMAT = 'solarcalcpro-project' as const;
-export const EXPORT_VERSION = 2 as const;
+export const EXPORT_VERSION = 3 as const;
 
 export interface ProjectExport {
   format: typeof EXPORT_FORMAT;
@@ -13,6 +13,8 @@ export interface ProjectExport {
     clientName: string;
     notes: string;
     scenarios: ImportedScenario[];
+    /** Base64 site-photo data URIs shown on proposals. */
+    photos: string[];
   };
 }
 
@@ -59,7 +61,7 @@ export interface ImportedScenario {
 }
 
 /** Serialize a project (with scenarios) for JSON backup. */
-export function exportProject(project: ProjectWithScenarios): string {
+export function exportProject(project: ProjectWithScenarios, photos: string[] = []): string {
   const payload: ProjectExport = {
     format: EXPORT_FORMAT,
     version: EXPORT_VERSION,
@@ -68,6 +70,7 @@ export function exportProject(project: ProjectWithScenarios): string {
       name: project.name,
       clientName: project.clientName,
       notes: project.notes,
+      photos,
       scenarios: project.scenarios.map((scenario) => ({
         name: scenario.name,
         isActive: scenario.isActive,
@@ -146,6 +149,9 @@ export function parseProjectImport(text: string): ProjectExport {
       name: project.name,
       clientName: typeof project.clientName === 'string' ? project.clientName : '',
       notes: typeof project.notes === 'string' ? project.notes : '',
+      photos: Array.isArray(project.photos)
+        ? project.photos.filter((p): p is string => typeof p === 'string')
+        : [],
       scenarios: scenarios.filter(isRecord).map((s) => ({
         name: typeof s.name === 'string' ? s.name : 'Imported scenario',
         isActive: s.isActive === true,

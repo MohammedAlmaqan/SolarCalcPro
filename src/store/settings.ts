@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import { settingsRepo } from '../db/repos/settings';
+import { isTier, isValidLicenseKey, type Tier } from '../core/capabilities';
 import type { StandardsPolicy } from '../core/types';
 import { getDbService } from './dbService';
 
@@ -26,6 +27,7 @@ const SYSTEM_LIFE_YEARS_KEY = 'ui.system_life_years';
 const TARIFF_ESCALATION_KEY = 'ui.tariff_escalation';
 const CURRENCY_KEY = 'ui.currency';
 const COMPANY_PROFILE_KEY = 'ui.company_profile';
+const ENTITLEMENT_KEY = 'app.entitlement';
 
 /** Installer branding shown on proposal documents. */
 export interface CompanyProfile {
@@ -124,6 +126,8 @@ interface SettingsState {
   tariffEscalationRate: number;
   currency: CurrencyCode;
   companyProfile: CompanyProfile;
+  /** Current entitlement tier ('free' or 'pro'), persisted to SQLite. */
+  tier: Tier;
 
   load: () => Promise<void>;
   setThemeMode: (mode: ThemeMode) => Promise<void>;
@@ -137,6 +141,8 @@ interface SettingsState {
   setTariffEscalationRate: (rate: number) => Promise<void>;
   setCurrency: (currency: CurrencyCode) => Promise<void>;
   setCompanyProfile: (patch: Partial<CompanyProfile>) => Promise<void>;
+  /** Validate an offline license key and, if valid, upgrade the tier to Pro. */
+  unlockPro: (licenseKey: string) => Promise<boolean>;
 }
 
 function isCurrencyCode(v: string | null): v is CurrencyCode {
@@ -156,6 +162,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   tariffEscalationRate: 0.02,
   currency: 'USD',
   companyProfile: DEFAULT_COMPANY_PROFILE,
+  tier: 'free',
 
   load: async () => {
     const repo = settingsRepo(getDbService());
@@ -174,6 +181,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       tariffEscalation,
       currency,
       companyProfile,
+      entitlement,
     ] = await Promise.all([
       repo.get(THEME_KEY),
       repo.get(POWER_KEY),
@@ -189,6 +197,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       repo.getNumber(TARIFF_ESCALATION_KEY),
       repo.get(CURRENCY_KEY),
       repo.get(COMPANY_PROFILE_KEY),
+      repo.get(ENTITLEMENT_KEY),
     ]);
     set({
       loaded: true,
@@ -210,6 +219,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       companyProfile: companyProfile
         ? { ...DEFAULT_COMPANY_PROFILE, ...JSON.parse(companyProfile) }
         : DEFAULT_COMPANY_PROFILE,
+      tier: isTier(entitlement) ? entitlement : 'free',
     });
   },
 
@@ -276,5 +286,12 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     const next = { ...get().companyProfile, ...patch };
     await settingsRepo(getDbService()).set(COMPANY_PROFILE_KEY, JSON.stringify(next));
     set({ companyProfile: next });
+  },
+
+  unlockPro: async (licenseKey) => {
+    if (!isValidLicenseKey(licenseKey)) return false;
+    await settingsRepo(getDbService()).set(ENTITLEMENT_KEY, 'pro');
+    set({ tier: 'pro' });
+    return true;
   },
 }));

@@ -17,7 +17,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { ProjectRecord } from '@/db/repos/projects';
+import { projectLimit } from '@/core/capabilities';
 import { useProjectStore } from '@/store/projects';
+import { useSettingsStore } from '@/store/settings';
+import { useUpgrade } from '@/components/upgrade';
 
 function ProjectAvatar() {
   const theme = useTheme();
@@ -37,11 +40,33 @@ export default function ProjectsScreen() {
   const duplicate = useProjectStore((s) => s.duplicate);
   const remove = useProjectStore((s) => s.remove);
   const rename = useProjectStore((s) => s.rename);
+  const tier = useSettingsStore((s) => s.tier);
+  const { showUpgrade } = useUpgrade();
 
   const [renaming, setRenaming] = useState<ProjectRecord | null>(null);
   const [renameName, setRenameName] = useState('');
   const [deleting, setDeleting] = useState<ProjectRecord | null>(null);
   const [menuFor, setMenuFor] = useState<string | null>(null);
+
+  const limit = projectLimit(tier);
+  const atLimit = projects.length >= limit;
+
+  const createProject = () => {
+    if (atLimit) {
+      showUpgrade('unlimitedProjects');
+      return;
+    }
+    router.push('/project/new');
+  };
+
+  const duplicateProject = (id: string) => {
+    setMenuFor(null);
+    if (atLimit) {
+      showUpgrade('unlimitedProjects');
+      return;
+    }
+    duplicate(id).catch((e) => console.error(e));
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -73,6 +98,18 @@ export default function ProjectsScreen() {
         <Appbar.Content title="Projects" />
       </Appbar.Header>
 
+      {atLimit && projects.length > 0 ? (
+        <View style={[styles.limitBanner, { backgroundColor: theme.colors.primaryContainer }]}>
+          <Text variant="bodySmall" style={{ color: theme.colors.onPrimaryContainer }}>
+            Free plan: {projects.length} of {limit} projects used. Upgrade to Pro for unlimited
+            projects.
+          </Text>
+          <Button compact mode="text" onPress={() => showUpgrade('unlimitedProjects')}>
+            Upgrade
+          </Button>
+        </View>
+      ) : null}
+
       {projects.length === 0 && !loading ? (
         <View style={styles.empty}>
           <View style={[styles.emptyIcon, { backgroundColor: theme.colors.primaryContainer }]}>
@@ -91,7 +128,7 @@ export default function ProjectsScreen() {
           <Button
             mode="contained"
             icon="solar-power"
-            onPress={() => router.push('/project/new')}
+            onPress={createProject}
             style={styles.emptyButton}
           >
             New project
@@ -135,10 +172,7 @@ export default function ProjectsScreen() {
                     <Menu.Item
                       leadingIcon="content-duplicate"
                       title="Duplicate"
-                      onPress={() => {
-                        setMenuFor(null);
-                        duplicate(item.id).catch((e) => console.error(e));
-                      }}
+                      onPress={() => duplicateProject(item.id)}
                     />
                     <Menu.Item
                       leadingIcon="pencil-outline"
@@ -166,7 +200,7 @@ export default function ProjectsScreen() {
         label="New project"
         variant="primary"
         style={styles.fab}
-        onPress={() => router.push('/project/new')}
+        onPress={createProject}
       />
 
       <Portal>
@@ -242,6 +276,13 @@ const styles = StyleSheet.create({
   },
   emptyButton: {
     marginTop: 8,
+  },
+  limitBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
   },
   fab: {
     position: 'absolute',

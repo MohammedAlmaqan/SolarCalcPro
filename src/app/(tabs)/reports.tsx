@@ -32,6 +32,7 @@ import { useProjectStore } from '@/store/projects';
 
 import { SldView } from '../../components/SldView';
 import { StatCard, WarningsList } from '../../components/results';
+import { ProGate } from '../../components/upgrade';
 import { useUnitFormatters } from '../../hooks/useUnitFormatters';
 import { CURRENCY_SYMBOLS, useSettingsStore } from '../../store/settings';
 
@@ -352,15 +353,17 @@ export default function ReportsScreen() {
                 <Card mode="outlined" style={styles.sectionCard}>
                   <Card.Title title="Export" />
                   <Card.Content style={styles.exportGrid}>
-                    <Button
-                      mode="contained"
-                      icon="file-document-check-outline"
-                      loading={busy}
-                      disabled={busy}
-                      onPress={exportProposal}
-                    >
-                      Proposal PDF
-                    </Button>
+                    <ProGate feature="proposalPdf">
+                      <Button
+                        mode="contained"
+                        icon="file-document-check-outline"
+                        loading={busy}
+                        disabled={busy}
+                        onPress={exportProposal}
+                      >
+                        Proposal PDF
+                      </Button>
+                    </ProGate>
                     <Button
                       mode="outlined"
                       icon="file-pdf-box"
@@ -402,8 +405,9 @@ export default function ReportsScreen() {
             )}
 
             {compare ? (
-              <Card mode="outlined" style={styles.sectionCard}>
-                <Card.Title title="Scenario comparison" />
+              <ProGate feature="scenarioComparison">
+                <Card mode="outlined" style={styles.sectionCard}>
+                  <Card.Title title="Scenario comparison" />
                 <Card.Content>
                   <View style={styles.tableHeader}>
                     <Text variant="labelLarge" style={styles.metricCell}>
@@ -438,7 +442,8 @@ export default function ReportsScreen() {
                     </View>
                   ))}
                 </Card.Content>
-              </Card>
+                </Card>
+              </ProGate>
             ) : null}
           </>
         )}

@@ -21,6 +21,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { SegmentedField, NumberField } from '@/components/form';
 import { PshPicker } from '@/components/pickers';
+import { ProGate, useUpgrade } from '@/components/upgrade';
+import { FEATURE_REGISTRY } from '@/core/capabilities';
 import { COMPANY_LOGO_DATA_URI } from '@/reports/companyLogoDataUri';
 import { SEED_MARKER_KEY } from '@/db';
 import { settingsRepo } from '@/db/repos/settings';
@@ -46,6 +48,7 @@ export default function SettingsScreen() {
   const psh = useReferenceStore((s) => s.psh);
   const refreshProjects = useProjectStore((s) => s.refresh);
   const loadReference = useReferenceStore((s) => s.load);
+  const { showUpgrade } = useUpgrade();
 
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
@@ -129,6 +132,49 @@ export default function SettingsScreen() {
       </Appbar.Header>
 
       <View style={styles.container}>
+        <Card mode="outlined">
+          <Card.Title
+            title={settings.tier === 'pro' ? 'SlorCalcPro — active' : 'SlorCalcPro'}
+            titleVariant="titleMedium"
+            right={() => (
+              <List.Icon
+                icon={settings.tier === 'pro' ? 'crown' : 'crown-outline'}
+                color={theme.colors.primary}
+              />
+            )}
+          />
+          <Divider />
+          <Card.Content>
+            {settings.tier === 'pro' ? (
+              <Text variant="bodyMedium">
+                Pro is unlocked on this device. All professional features are available.
+              </Text>
+            ) : (
+              <>
+                <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                  The free tier is fully functional for single-site designs. Pro unlocks client
+                  branding, proposal PDFs, scenario comparison and unlimited projects.
+                </Text>
+                <Button
+                  mode="contained"
+                  icon="crown-outline"
+                  onPress={() => showUpgrade()}
+                  style={styles.upgradeButton}
+                >
+                  Unlock Pro
+                </Button>
+              </>
+            )}
+            <View style={styles.proFeatureTags}>
+              {FEATURE_REGISTRY.filter((f) => f.tier === 'pro').map((f) => (
+                <Text key={f.key} variant="labelSmall" style={styles.proFeatureTag}>
+                  {f.label}
+                </Text>
+              ))}
+            </View>
+          </Card.Content>
+        </Card>
+
         <Card mode="outlined">
           <Card.Title title="Appearance" titleVariant="titleMedium" />
           <Divider />
@@ -217,8 +263,9 @@ export default function SettingsScreen() {
           </Card.Content>
         </Card>
 
-        <Card mode="outlined">
-          <Card.Title title="Company profile" titleVariant="titleMedium" />
+        <ProGate feature="companyBranding">
+          <Card mode="outlined">
+            <Card.Title title="Company profile" titleVariant="titleMedium" />
           <Divider />
           <Card.Content>
             <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginBottom: 8 }}>
@@ -287,7 +334,8 @@ export default function SettingsScreen() {
               style={styles.input}
             />
           </Card.Content>
-        </Card>
+          </Card>
+        </ProGate>
 
         <Card mode="outlined">
           <Card.Title title="Cost & payback" titleVariant="titleMedium" />
@@ -448,5 +496,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
+  },
+  upgradeButton: {
+    marginTop: 12,
+    alignSelf: 'flex-start',
+  },
+  proFeatureTags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 12,
+  },
+  proFeatureTag: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    backgroundColor: 'rgba(11, 79, 108, 0.1)',
+    overflow: 'hidden',
   },
 });

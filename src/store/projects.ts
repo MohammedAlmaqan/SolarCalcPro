@@ -7,8 +7,10 @@ import type {
   ScenarioRecord,
 } from '../db/repos/projects';
 import { projectRepo } from '../db/repos/projects';
+import { projectLimit } from '../core/capabilities';
 import type { DesignResult, LoadItem } from '../core/types';
 import { getDbService } from './dbService';
+import { useSettingsStore } from './settings';
 interface ProjectState {
   projects: ProjectRecord[];
   activeProject: ProjectWithScenarios | null;
@@ -44,6 +46,13 @@ function repo() {
   return projectRepo(getDbService());
 }
 
+/** True when the current tier has no capacity for another project. */
+function limitReached(currentCount: number): boolean {
+  return currentCount >= projectLimit(useSettingsStore.getState().tier);
+}
+
+const FREE_LIMIT_ERROR = 'Project limit reached. Upgrade to Pro for unlimited projects.';
+
 export const useProjectStore = create<ProjectState>((set, get) => ({
   projects: [],
   activeProject: null,
@@ -68,6 +77,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   },
 
   create: async (input) => {
+    if (limitReached(get().projects.length)) throw new Error(FREE_LIMIT_ERROR);
     const project = await repo().createProject({
       name: input.name,
       clientName: input.clientName,
@@ -85,6 +95,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   },
 
   duplicate: async (id) => {
+    if (limitReached(get().projects.length)) throw new Error(FREE_LIMIT_ERROR);
     await repo().duplicateProject(id);
     await get().refresh();
   },
@@ -102,6 +113,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   },
 
   importProject: async (backup) => {
+    if (limitReached(get().projects.length)) throw new Error(FREE_LIMIT_ERROR);
     await repo().importProject(backup);
     await get().refresh();
   },

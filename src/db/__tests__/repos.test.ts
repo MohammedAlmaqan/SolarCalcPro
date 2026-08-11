@@ -28,6 +28,32 @@ describe('pshRepo', () => {
     await repo.removeManual(added.id);
     expect(await repo.getById(added.id)).toBeNull();
   });
+
+  it('reads back a stored monthly PSH profile', async () => {
+    const db = await openTestDb();
+    const repo = pshRepo(db);
+    const london = await repo.getById('psh-london');
+    expect(london?.monthlyPsh).toHaveLength(12);
+    expect(london?.monthlyPsh?.every((v) => typeof v === 'number')).toBe(true);
+    // Worst month in the UK is mid-winter (Dec/Jan).
+    const profile = london?.monthlyPsh ?? [];
+    const worstIndex = profile.indexOf(Math.min(...profile));
+    expect([0, 11]).toContain(worstIndex);
+  });
+
+  it('persists a monthly profile on manual locations', async () => {
+    const db = await openTestDb();
+    const repo = pshRepo(db);
+    const profile = [4, 4.5, 5, 5.5, 6, 6.5, 6.5, 6, 5.5, 5, 4.5, 4];
+    const added = await repo.addManual({
+      country: 'Testland',
+      city: 'Profiled',
+      winterPsh: 4,
+      summerPsh: 6,
+      monthlyPsh: profile,
+    });
+    expect((await repo.getById(added.id))?.monthlyPsh).toEqual(profile);
+  });
 });
 
 describe('presetRepo', () => {

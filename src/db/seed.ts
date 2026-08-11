@@ -5,6 +5,7 @@ import { SEED_INVERTERS } from '../data/inverters';
 import { SEED_PANELS } from '../data/panels';
 import { SEED_PRESETS } from '../data/presets';
 import { SEED_PSH } from '../data/psh';
+import { synthMonthlyPsh } from '../core/formulas/production';
 import type { DatabaseLike } from './types';
 
 /**
@@ -55,10 +56,13 @@ export async function seed(db: DatabaseLike): Promise<void> {
     }
 
     for (const loc of SEED_PSH) {
+      const monthlyPsh = synthMonthlyPsh(loc.winterPsh, loc.summerPsh, loc.latitude);
       await txn.runAsync(
-        `INSERT OR IGNORE INTO psh_locations
-          (id, country, city, latitude, longitude, winter_psh, summer_psh, recommended_tilt, is_manual)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)`,
+        `INSERT INTO psh_locations
+          (id, country, city, latitude, longitude, winter_psh, summer_psh, monthly_psh_json, recommended_tilt, is_manual)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+         ON CONFLICT(id) DO UPDATE SET
+           monthly_psh_json = excluded.monthly_psh_json`,
         [
           loc.id,
           loc.country,
@@ -67,6 +71,7 @@ export async function seed(db: DatabaseLike): Promise<void> {
           loc.longitude ?? null,
           loc.winterPsh,
           loc.summerPsh,
+          JSON.stringify(monthlyPsh),
           loc.recommendedTilt ?? null,
         ],
       );

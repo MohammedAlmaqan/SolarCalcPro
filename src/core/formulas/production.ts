@@ -16,6 +16,12 @@ export interface ProductionInput {
   winterPsh: number;
   /** Summer peak sun hours (kWh/m²/day). */
   summerPsh: number;
+  /**
+   * 12-value monthly peak sun hours (Jan–Dec). When present it is used
+   * directly instead of the winter/summer synth curve (e.g. a stored city
+   * profile or a monsoon-inverted climate).
+   */
+  monthlyPsh?: number[];
   /** Site latitude (°); flips the seasonal peak for the southern hemisphere. */
   latitude?: number;
   /** Pmax temperature coefficient (%/°C), negative, e.g. −0.35. */
@@ -84,7 +90,10 @@ export function deriveMonthlyAmbient(latitude?: number): number[] {
  */
 export function estimateProduction(input: ProductionInput): ProductionResult {
   const latitude = input.latitude ?? 25;
-  let monthlyPsh = synthMonthlyPsh(input.winterPsh, input.summerPsh, latitude);
+  const hasProfile = Array.isArray(input.monthlyPsh) && input.monthlyPsh.length === 12;
+  let monthlyPsh = hasProfile
+    ? (input.monthlyPsh as number[]).slice()
+    : synthMonthlyPsh(input.winterPsh, input.summerPsh, latitude);
   const ambient = deriveMonthlyAmbient(latitude);
   const systemDerate = Math.min(1, Math.max(0.3, input.systemDerate ?? 0.75));
   const shadingFactor = Math.min(1, Math.max(0.5, input.shadingFactor ?? 1));

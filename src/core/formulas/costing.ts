@@ -213,7 +213,10 @@ export function estimateCost(
   const laborTotal = money(equipmentSubtotal * book.laborPct);
   const total = money(equipmentSubtotal + bosTotal + laborTotal);
 
-  const avgPsh = (input.winterPsh + input.summerPsh) / 2;
+  const avgPsh =
+    Array.isArray(input.monthlyPsh) && input.monthlyPsh.length === 12
+      ? input.monthlyPsh.reduce((sum, v) => sum + v, 0) / 12
+      : (input.winterPsh + input.summerPsh) / 2;
   const annualProductionKwh = money(result.production.annualKwh);
   const annualSavings = money(annualProductionKwh * electricRate);
   const simplePaybackYears = annualSavings > 0 ? money(total / annualSavings) : null;

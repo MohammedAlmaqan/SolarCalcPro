@@ -10,6 +10,9 @@ export interface PshLocation {
   longitude?: number;
   winterPsh: number;
   summerPsh: number;
+  /** 12-value monthly peak sun hours (Jan–Dec). When present it is the source
+   * of truth for production simulation and worst-month auto-selection. */
+  monthlyPsh?: number[];
   recommendedTilt?: number;
   isManual?: boolean;
   note?: string;

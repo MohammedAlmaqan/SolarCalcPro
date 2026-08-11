@@ -61,6 +61,34 @@ describe('designSystem — end-to-end hybrid design', () => {
     expect(result.pv.actualArrayWatts).toBe(1650);
   });
 
+  it('auto-selects the worst month from a monthly PSH profile for sizing', () => {
+    const monsoon = [5.1, 5.3, 5.4, 4.9, 4.2, 3.4, 3.1, 3.3, 3.9, 4.6, 5.0, 5.2];
+    const withProfile = designSystem({ ...hybridInput(), monthlyPsh: monsoon });
+    // Winter anchor alone would give 2350/0.9/5.1/0.75 ≈ 682 W; the true worst
+    // month (July, 3.1 h) forces ≈ 1123 W.
+    expect(withProfile.pv.requiredArrayWatts).toBeCloseTo(2350 / 0.9 / 3.1 / 0.75, 0);
+    expect(withProfile.pv.requiredArrayWatts).toBeGreaterThan(result.pv.requiredArrayWatts);
+    const worstAudit = withProfile.audit.find((step) => step.id === 'pv.worstMonth');
+    expect(worstAudit?.result).toBe(3.1);
+    expect(worstAudit?.values.worstMonth).toBe(7);
+  });
+
+  it('falls back to the winter anchor when no monthly profile is provided', () => {
+    const plain = designSystem(hybridInput());
+    const worstAudit = plain.audit.find((step) => step.id === 'pv.worstMonth');
+    expect(worstAudit).toBeUndefined();
+    expect(plain.pv.requiredArrayWatts).toBeCloseTo(2350 / 0.9 / 4.0 / 0.75, 1);
+  });
+
+  it('simulates monthly production from a stored profile rather than the synth curve', () => {
+    const flat = Array(12).fill(5);
+    const withProfile = designSystem({ ...hybridInput(), winterPsh: 2, summerPsh: 6, monthlyPsh: flat });
+    // Every month's PSH must come from the stored profile, not winter/summer.
+    for (const m of withProfile.production.months) expect(m.psh).toBeCloseTo(5, 5);
+    expect(withProfile.production.months[0].psh).toBeCloseTo(5, 5);
+    expect(withProfile.production.months[0].psh).not.toBeCloseTo(2, 5);
+  });
+
   it('sizes the battery bank (study §2.3)', () => {
     expect(result.battery.systemVoltageV).toBe(48);
     expect(result.battery.seriesCount).toBe(4);

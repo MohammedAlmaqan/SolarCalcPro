@@ -149,6 +149,12 @@ export interface SystemInput {
   winterPsh: number;
   /** Summer peak sun hours (kWh/m²/day). */
   summerPsh: number;
+  /**
+   * 12-value monthly peak sun hours (Jan–Dec). When present it is the source
+   * of truth: the array is sized on the worst (lowest) month and monthly
+   * production uses the profile directly instead of the winter/summer synth.
+   */
+  monthlyPsh?: number[];
   /** Site latitude (°) for the seasonal production model, default 25. */
   latitude?: number;
   /** Fixed array tilt from horizontal (°), default 0 (flat on the horizontal). */

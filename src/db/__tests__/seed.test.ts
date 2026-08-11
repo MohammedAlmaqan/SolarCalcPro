@@ -68,4 +68,29 @@ describe('seed', () => {
     const spec = JSON.parse(row?.spec_json ?? '') as { pmaxW: number };
     expect(spec.pmaxW).toBe(550);
   });
+
+  it('stores a 12-value monthly PSH profile for every seeded city', async () => {
+    const db = await openMigratedDb();
+    await seed(db);
+    const row = await db.getFirstAsync<{ monthly_psh_json: string | null }>(
+      "SELECT monthly_psh_json FROM psh_locations WHERE id = 'psh-london'",
+    );
+    const profile = JSON.parse(row?.monthly_psh_json ?? '[]') as number[];
+    expect(profile).toHaveLength(12);
+    expect(profile.every((v) => typeof v === 'number' && v > 0)).toBe(true);
+    // Worst month is mid-winter in the northern hemisphere (Dec/Jan).
+    const worstIndex = profile.indexOf(Math.min(...profile));
+    expect([0, 11]).toContain(worstIndex);
+  });
+
+  it('re-seeding refreshes monthly profiles on existing rows', async () => {
+    const db = await openMigratedDb();
+    await seed(db);
+    await db.runAsync("UPDATE psh_locations SET monthly_psh_json = '[]' WHERE id = 'psh-dubai'");
+    await seed(db);
+    const row = await db.getFirstAsync<{ monthly_psh_json: string }>(
+      "SELECT monthly_psh_json FROM psh_locations WHERE id = 'psh-dubai'",
+    );
+    expect(JSON.parse(row?.monthly_psh_json ?? '')).toHaveLength(12);
+  });
 });

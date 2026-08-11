@@ -50,6 +50,15 @@ const fToC = (f: number): number => ((f - 32) * 5) / 9;
 const mToFt = (m: number): number => m * 3.28084;
 const ftToM = (ft: number): number => ft / 3.28084;
 
+/** Month (1–12) of the lowest value in a 12-value monthly PSH profile. */
+function productionWorstMonth(profile: number[]): number {
+  let worst = 0;
+  for (let i = 1; i < profile.length; i++) {
+    if (profile[i] < profile[worst]) worst = i;
+  }
+  return worst + 1;
+}
+
 type VoltageChoice = 'auto' | '12' | '24' | '48';
 
 export function DesignWizard(props: {
@@ -80,6 +89,9 @@ export function DesignWizard(props: {
   const [systemType, setSystemType] = useState<SystemType>(initial?.systemType ?? 'off-grid');
   const [winterPsh, setWinterPsh] = useState<number | null>(initial?.winterPsh ?? null);
   const [summerPsh, setSummerPsh] = useState<number | null>(initial?.summerPsh ?? null);
+  const [monthlyPsh, setMonthlyPsh] = useState<number[] | null>(
+    initial?.pshLocation?.monthlyPsh ?? null,
+  );
   const [pshLocationId, setPshLocationId] = useState<string | null>(
     initial?.pshLocation?.id ?? null,
   );
@@ -170,10 +182,15 @@ export function DesignWizard(props: {
   const effectivePshLocationId = effectiveLocation?.id ?? pshLocationId;
   const effectiveWinterPsh = winterPsh ?? effectiveLocation?.winterPsh ?? 4.0;
   const effectiveSummerPsh = summerPsh ?? effectiveLocation?.summerPsh ?? 6.0;
+  // A stored monthly profile is only used when it matches the location the user
+  // actually picked. Explicit winter/summer edits (winterPsh non-null) drop it so
+  // the engine falls back to the synth curve from those anchors.
+  const effectiveMonthlyPsh =
+    monthlyPsh ??
+    (winterPsh === null ? effectiveLocation?.monthlyPsh ?? undefined : undefined);
   const effectiveLatitude = effectiveLocation?.latitude ?? initial?.pshLocation?.latitude ?? 25;
 
-  const effectiveTilt = tilt ?? effectiveLocation?.recommendedTilt ?? annualOptimalTilt(effectiveLatitude, 'winter');
-  const effectiveAzimuth = azimuth ?? (effectiveLatitude >= 0 ? 180 : 0);
+  const effectiveTilt = tilt ?? effectiveLocation?.recommendedTilt ?? annualOptimalTilt(effectiveLatitude, 'winter');  const effectiveAzimuth = azimuth ?? (effectiveLatitude >= 0 ? 180 : 0);
   const effectiveShadingFactor =
     shadingLossPct === null ? 1 : Math.max(0.5, (100 - shadingLossPct) / 100);
   const recommendedTilt = annualOptimalTilt(effectiveLatitude, 'winter');
@@ -236,6 +253,7 @@ export function DesignWizard(props: {
       systemType,
       winterPsh: effectiveWinterPsh,
       summerPsh: effectiveSummerPsh,
+      monthlyPsh: effectiveMonthlyPsh,
       latitude: effectiveLatitude,
       tilt: effectiveTilt,
       azimuth: effectiveAzimuth,
@@ -277,6 +295,7 @@ export function DesignWizard(props: {
     systemType,
     effectiveWinterPsh,
     effectiveSummerPsh,
+    effectiveMonthlyPsh,
     effectiveLatitude,
     effectiveTilt,
     effectiveAzimuth,
@@ -526,6 +545,7 @@ export function DesignWizard(props: {
           setPshLocationId(location.id);
           setWinterPsh(location.winterPsh);
           setSummerPsh(location.summerPsh);
+          setMonthlyPsh(location.monthlyPsh ?? null);
         }}
         onClear={() => {
           setPshLocationId(null);
@@ -544,13 +564,19 @@ export function DesignWizard(props: {
         <NumberField
           label="Winter PSH"
           value={effectiveWinterPsh}
-          onChange={setWinterPsh}
+          onChange={(v) => {
+            setWinterPsh(v);
+            setMonthlyPsh(null);
+          }}
           unit="h/day"
         />
         <NumberField
           label="Summer PSH"
           value={effectiveSummerPsh}
-          onChange={setSummerPsh}
+          onChange={(v) => {
+            setSummerPsh(v);
+            setMonthlyPsh(null);
+          }}
           unit="h/day"
         />
       </View>
@@ -933,6 +959,7 @@ export function DesignWizard(props: {
           setPshLocationId(location.id);
           setWinterPsh(location.winterPsh);
           setSummerPsh(location.summerPsh);
+          setMonthlyPsh(null);
         }}
       />
       <Snackbar visible={saveError !== null} onDismiss={() => setSaveError(null)} duration={4000}>
@@ -1071,7 +1098,11 @@ function ResultsView(props: {
         <StatCard
           label="PV array"
           value={f.power(pv.actualArrayWatts)}
-          hint={`${pv.seriesCount}S × ${pv.parallelCount}P panels`}
+          hint={
+            result?.input.monthlyPsh
+              ? `${pv.seriesCount}S × ${pv.parallelCount}P · sized on worst month (${monthLabel(productionWorstMonth(result.input.monthlyPsh))}, ${Math.min(...result.input.monthlyPsh)} h)`
+              : `${pv.seriesCount}S × ${pv.parallelCount}P panels`
+          }
           icon="solar-panel"
           tint={theme.colors.secondary}
         />

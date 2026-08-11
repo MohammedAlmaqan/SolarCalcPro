@@ -40,4 +40,13 @@ describe('migrate', () => {
     const left = await db.getFirstAsync<{ n: number }>('SELECT COUNT(*) AS n FROM scenarios');
     expect(left?.n).toBe(0);
   });
+
+  it('adds the monthly PSH profile column to psh_locations (v7)', async () => {
+    const db = openMemoryDb();
+    await migrate(db);
+    const cols = await db.getAllAsync<{ name: string }>(
+      "PRAGMA table_info('psh_locations')",
+    );
+    expect(cols.map((c) => c.name)).toContain('monthly_psh_json');
+  });
 });

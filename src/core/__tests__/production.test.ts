@@ -138,4 +138,41 @@ describe('estimateProduction — monthly yield & performance ratio', () => {
     expect(shaded.annualKwh).toBeCloseTo(clean.annualKwh * 0.85, 1);
     expect(shaded.months[5].energyKwh).toBeCloseTo(clean.months[5].energyKwh * 0.85, 1);
   });
+
+  it('uses a stored monthly PSH profile directly instead of the synth curve', () => {
+    const profile = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+    const result = estimateProduction({
+      arrayWatts: 1000,
+      winterPsh: 2,
+      summerPsh: 6,
+      latitude: 30,
+      tempCoeffPmax: 0,
+      systemDerate: 1,
+      monthlyPsh: profile,
+    });
+    // Each month's PSH matches the stored profile exactly.
+    result.months.forEach((m, i) => expect(m.psh).toBe(profile[i]));
+    // January is far lower than the winter anchor would have produced.
+    expect(result.months[0].psh).toBe(1);
+    expect(result.months[0].psh).toBeLessThan(2);
+    expect(result.months[11].psh).toBe(12);
+    const ideal = profile.reduce((sum, psh, i) => sum + psh * result.months[i].daysInMonth, 0);
+    expect(result.annualKwh).toBeCloseTo(ideal, 1);
+  });
+
+  it('honours a monsoon-inverted profile (worst month mid-year)', () => {
+    const monsoon = [5.1, 5.3, 5.4, 4.9, 4.2, 3.4, 3.1, 3.3, 3.9, 4.6, 5.0, 5.2];
+    const result = estimateProduction({
+      arrayWatts: 1000,
+      winterPsh: 5.1,
+      summerPsh: 3.5,
+      latitude: 19,
+      tempCoeffPmax: 0,
+      systemDerate: 1,
+      monthlyPsh: monsoon,
+    });
+    const worst = result.months.reduce((a, b) => (b.psh < a.psh ? b : a));
+    expect(worst.month).toBe(7);
+    expect(worst.psh).toBe(3.1);
+  });
 });

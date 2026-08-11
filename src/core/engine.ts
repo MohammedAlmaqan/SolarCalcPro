@@ -97,9 +97,28 @@ export function designSystem(input: SystemInput): DesignResult {
 
   // 4. PV array ------------------------------------------------------------
   const constraints = stringConstraints(input, selectedInverter, controller, systemVoltage);
+  const hasMonthlyProfile = Array.isArray(input.monthlyPsh) && input.monthlyPsh.length === 12;
+  const worstMonthPsh = hasMonthlyProfile
+    ? Math.min(...(input.monthlyPsh as number[]))
+    : input.winterPsh;
+  if (hasMonthlyProfile) {
+    const profile = input.monthlyPsh as number[];
+    const worstMonthIndex = profile.indexOf(worstMonthPsh);
+    audit.add({
+      id: 'pv.worstMonth',
+      description: 'Worst-month PSH auto-selected from the monthly profile',
+      formula: 'min(monthlyPsh)',
+      values: {
+        worstMonth: worstMonthIndex + 1,
+        worstMonthPsh,
+      },
+      result: worstMonthPsh,
+      unit: 'kWh/m²/day',
+    });
+  }
   const pv = calculatePvArray(
     dailyLoad.dcEquivalentWhPerDay,
-    input.winterPsh,
+    worstMonthPsh,
     lossFactor,
     panel,
     constraints,
@@ -126,6 +145,7 @@ export function designSystem(input: SystemInput): DesignResult {
     arrayWatts: pv.actualArrayWatts,
     winterPsh: input.winterPsh,
     summerPsh: input.summerPsh,
+    monthlyPsh: hasMonthlyProfile ? input.monthlyPsh : undefined,
     latitude: input.latitude,
     tempCoeffPmax: panel.tempCoeffPmax,
     systemDerate: lossFactor,

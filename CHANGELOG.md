@@ -43,6 +43,16 @@
 
 ## 3. Detailed Log (most recent first)
 
+### 2026-08-11 — P0: monthly PSH + expanded cities + worst-month auto-selection
+- ✅ Migration v7 (`src/db/schema.ts`): `ALTER TABLE psh_locations ADD COLUMN monthly_psh_json TEXT;` — 12-value Jan–Dec profile is now the source of truth when present; `winter_psh`/`summer_psh` remain as fallback + display anchors.
+- ✅ Core engine: `SystemInput.monthlyPsh?` (`src/core/types.ts`); `designSystem` auto-selects the worst month (`min(monthlyPsh)`) for PV array sizing (new audit id `pv.worstMonth`); `estimateProduction` consumes a stored profile directly instead of the synth winter/summer curve; `pv.ts` param renamed `winterPsh` → `designPsh` (audit formula `DC_Wh ÷ designPSH ÷ lossFactor`); `costing.avgPsh` uses the monthly mean when a profile is present.
+- ✅ Seed data (`src/data/psh.ts`): rewritten as compact `RAW_PSH` entries, expanded **36 → 121 cities**; seed writes `monthly_psh_json` via `ON CONFLICT(id) DO UPDATE` upsert so existing installs get profiles backfilled; monthly curves derived from `synthMonthlyPsh` (engineering-representative, not measured).
+- ✅ Repos: psh repo parses/validates profile JSON (tolerates malformed), persists it on manual locations; full-DB backup/restore round-trips the new column via dynamic introspection (no schema-hardcoding).
+- ✅ UI: DesignWizard `monthlyPsh` state — location profile wins; manual winter/summer edits intentionally drop it (engine falls back to synth); `PshPicker` + location list show "Worst <Mon> <psh> h"; PV stat card shows "sized on worst month"; proposal PDF gains a worst-month sizing line before the monthly table.
+- ✅ Tests: +10 (production stored-profile + monsoon-inverted profile use, engine worst-month auto-selection + synth fallback, seed upsert refresh, repo read-back + manual persistence, migrate v7 column) — **236/236 green**.
+- ✅ Gates green: tsc ✓ · eslint ✓ · jest **236/236** ✓.
+- 📌 Backlog note: `audi.md` P0 flags/Pro-gating module still open (deferred by owner in favour of P1 work).
+
 ### 2026-08-07 — EAS preview APK build kicked off
 - ✅ Pinned `eas-cli@21.7.0` as devDependency (commit `6b9c71a`) so `npx eas` is reproducible in-repo; verified CLI works headless (`eas-cli/21.7.0`).
 - ✅ Confirmed build config: `eas.json` `preview` profile = APK / internal distribution; `app.json` owner `merathdev`, slug `solarcalcapp`, projectId `846fcdc9-f35f-4459-ac01-e5b45812e3f7`, android package `com.merathdev.solarcalcpro`; no local `android/` dir (CNG).

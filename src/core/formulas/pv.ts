@@ -25,23 +25,25 @@ export interface RecommendedString {
 
 /**
  * PV array sizing (study §2.2):
- *   Array Power (W) = Daily Energy (Wh) ÷ Winter PSH ÷ system loss factor
+ *   Array Power (W) = Daily Energy (Wh) ÷ design PSH ÷ system loss factor
+ * `designPsh` is the worst-month (minimum) monthly PSH when a profile is
+ * available, otherwise the winter PSH anchor.
  */
 export function requiredArrayWatts(
   dcEquivalentWhPerDay: number,
-  winterPsh: number,
+  designPsh: number,
   lossFactor: number,
   audit: AuditTrail,
 ): number {
-  if (winterPsh <= 0) {
-    throw new Error('Winter peak sun hours must be greater than 0.');
+  if (designPsh <= 0) {
+    throw new Error('Peak sun hours must be greater than 0.');
   }
-  const required = dcEquivalentWhPerDay / winterPsh / lossFactor;
+  const required = dcEquivalentWhPerDay / designPsh / lossFactor;
   audit.add({
     id: 'pv.required',
     description: 'Required PV array power',
-    formula: 'DC_Wh ÷ winterPSH ÷ lossFactor',
-    values: { dcEquivalentWhPerDay, winterPsh, lossFactor },
+    formula: 'DC_Wh ÷ designPSH ÷ lossFactor',
+    values: { dcEquivalentWhPerDay, designPsh, lossFactor },
     result: round(required),
     unit: 'W',
   });
@@ -148,13 +150,13 @@ export function recommendStringConfiguration(
  */
 export function calculatePvArray(
   dcEquivalentWhPerDay: number,
-  winterPsh: number,
+  designPsh: number,
   lossFactor: number,
   panel: PanelSpec,
   constraints: StringConstraints,
   audit: AuditTrail,
 ): PvResult {
-  const required = requiredArrayWatts(dcEquivalentWhPerDay, winterPsh, lossFactor, audit);
+  const required = requiredArrayWatts(dcEquivalentWhPerDay, designPsh, lossFactor, audit);
   const config = recommendStringConfiguration(required, panel, constraints, audit);
 
   return {

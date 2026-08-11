@@ -157,4 +157,10 @@ ALTER TABLE scenarios ADD COLUMN fuel_price_per_l REAL;
 ALTER TABLE scenarios ADD COLUMN generator_charge_hours_per_day REAL;
 `,
   },
+  {
+    version: 7,
+    up: `
+ALTER TABLE psh_locations ADD COLUMN monthly_psh_json TEXT;
+`,
+  },
 ];

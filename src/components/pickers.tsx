@@ -19,6 +19,21 @@ import { useCatalogStore } from '@/store/catalog';
 import { CatalogEditor } from './CatalogEditor';
 import { NumberField } from './form';
 
+const MONTH_ABBR = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/**
+ * Worst (lowest) month of a location's monthly PSH profile, as
+ * `{ month: 1–12, psh }`. Returns null when no monthly profile is stored.
+ */
+export function worstPshMonth(location: PshLocation): { month: number; psh: number } | null {
+  if (!Array.isArray(location.monthlyPsh) || location.monthlyPsh.length !== 12) return null;
+  let worst = 0;
+  for (let i = 1; i < 12; i++) {
+    if (location.monthlyPsh[i] < location.monthlyPsh[worst]) worst = i;
+  }
+  return { month: worst + 1, psh: location.monthlyPsh[worst] };
+}
+
 /** One-line human summary of a component's key specs. */
 export function specSummary(kind: ComponentKind, spec: AnySpec): string {
   switch (kind) {
@@ -254,6 +269,9 @@ export function PshPicker(props: {
         <Card.Content>
           <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
             Winter {selected.winterPsh} h · Summer {selected.summerPsh} h
+            {worstPshMonth(selected)
+              ? ` · Worst ${MONTH_ABBR[(worstPshMonth(selected)!.month - 1)]} ${worstPshMonth(selected)!.psh} h`
+              : ''}
             {selected.recommendedTilt != null ? ` · Tilt ${selected.recommendedTilt}°` : ''}
           </Text>
         </Card.Content>
@@ -271,7 +289,11 @@ export function PshPicker(props: {
               <List.Item
                 key={item.id}
                 title={`${item.city}, ${item.country}`}
-                description={`Winter ${item.winterPsh} h · Summer ${item.summerPsh} h`}
+                description={
+                  worstPshMonth(item)
+                    ? `Winter ${item.winterPsh} h · Worst ${MONTH_ABBR[(worstPshMonth(item)!.month - 1)]} ${worstPshMonth(item)!.psh} h`
+                    : `Winter ${item.winterPsh} h · Summer ${item.summerPsh} h`
+                }
                 onPress={() => {
                   onSelect(item);
                   setOpen(false);

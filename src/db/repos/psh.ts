@@ -10,12 +10,24 @@ interface PshRow {
   longitude: number | null;
   winter_psh: number;
   summer_psh: number;
+  monthly_psh_json: string | null;
   recommended_tilt: number | null;
   is_manual: number;
   note: string | null;
 }
 
 function toLocation(row: PshRow): PshLocation {
+  let monthlyPsh: number[] | undefined;
+  if (row.monthly_psh_json) {
+    try {
+      const parsed = JSON.parse(row.monthly_psh_json) as unknown;
+      if (Array.isArray(parsed) && parsed.length === 12 && parsed.every((v) => typeof v === 'number')) {
+        monthlyPsh = parsed as number[];
+      }
+    } catch {
+      // ignore malformed profiles — fall back to winter/summer model
+    }
+  }
   return {
     id: row.id,
     country: row.country,
@@ -24,6 +36,7 @@ function toLocation(row: PshRow): PshLocation {
     longitude: row.longitude ?? undefined,
     winterPsh: row.winter_psh,
     summerPsh: row.summer_psh,
+    monthlyPsh,
     recommendedTilt: row.recommended_tilt ?? undefined,
     isManual: row.is_manual === 1,
     note: row.note ?? undefined,
@@ -65,8 +78,8 @@ export function pshRepo(db: DatabaseLike): PshRepo {
       const id = newId();
       await db.runAsync(
         `INSERT INTO psh_locations
-          (id, country, city, latitude, longitude, winter_psh, summer_psh, recommended_tilt, is_manual, note)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`,
+          (id, country, city, latitude, longitude, winter_psh, summer_psh, monthly_psh_json, recommended_tilt, is_manual, note)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`,
         [
           id,
           entry.country,
@@ -75,6 +88,7 @@ export function pshRepo(db: DatabaseLike): PshRepo {
           entry.longitude ?? null,
           entry.winterPsh,
           entry.summerPsh,
+          entry.monthlyPsh ? JSON.stringify(entry.monthlyPsh) : null,
           entry.recommendedTilt ?? null,
           entry.note ?? null,
         ],

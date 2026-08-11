@@ -34,7 +34,18 @@ function esc(value: string | number): string {
   return String(value)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/** Month (1–12) of the lowest value in a 12-value monthly PSH profile. */
+function worstMonthOf(profile: number[]): number {
+  let worst = 0;
+  for (let i = 1; i < profile.length; i++) {
+    if (profile[i] < profile[worst]) worst = i;
+  }
+  return worst + 1;
 }
 
 /** Build a structured, page-controlled proposal document (print/PDF ready). */
@@ -287,6 +298,11 @@ export function buildProposalPdfHtml(data: ProposalData): string {
   ${
     cost.batteryAging
       ? `<div class="roi"><div class="lbl">Battery lifespan (${Math.round(result.battery.depthOfDischarge * 100)}% depth of discharge)</div><div class="val">${Number.isFinite(cost.batteryAging.lifespanYears) ? `${f.number(cost.batteryAging.lifespanYears, 1)} years` : 'outlasts the analysis'}</div></div>`
+      : ''
+  }
+  ${
+    Array.isArray(result.input.monthlyPsh) && result.input.monthlyPsh.length === 12
+      ? `<div class="roi"><div class="lbl">Array sized on the worst month (auto-selected from the monthly PSH profile)</div><div class="val">${esc(monthLabel(worstMonthOf(result.input.monthlyPsh)))} · ${f.number(Math.min(...result.input.monthlyPsh), 1)} h/day</div></div>`
       : ''
   }
   <table>

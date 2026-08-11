@@ -11,6 +11,7 @@ import { setDbService } from '@/store/dbService';
 import { useReferenceStore } from '@/store/reference';
 import { useSettingsStore } from '@/store/settings';
 import { darkTheme, lightTheme } from '@/theme';
+import { UpgradeProvider } from '@/components/upgrade';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -52,14 +53,16 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <PaperProvider theme={theme}>
-        <StatusBar style={effectiveScheme === 'dark' ? 'light' : 'dark'} />
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="project/new" />
-          <Stack.Screen name="project/[id]" />
-          <Stack.Screen name="project/scenario/[scenarioId]" />
-          <Stack.Screen name="docs" />
-        </Stack>
+        <UpgradeProvider>
+          <StatusBar style={effectiveScheme === 'dark' ? 'light' : 'dark'} />
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="project/new" />
+            <Stack.Screen name="project/[id]" />
+            <Stack.Screen name="project/scenario/[scenarioId]" />
+            <Stack.Screen name="docs" />
+          </Stack>
+        </UpgradeProvider>
       </PaperProvider>
     </SafeAreaProvider>
   );

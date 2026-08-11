@@ -43,6 +43,14 @@
 
 ## 3. Detailed Log (most recent first)
 
+### 2026-08-11 — P0: feature-flags / Pro-gating module (Phase F prerequisite)
+- ✅ New pure module `src/core/capabilities.ts`: `Tier` ('free'/'pro'), 12 declared `FeatureKey`s in `FEATURE_REGISTRY` (4 live now: proposalPdf, companyBranding, scenarioComparison, unlimitedProjects; 8 future-facing: waterPumping, evCharging, loadProfileEditor, kmlExport, excelExport, sldPngExport, sitePhotos — plus fullBackup kept deliberately free), `hasFeature()`, `projectLimit()` (free capped at **3**), and an offline license-key validator (`isValidLicenseKey`/`generateLicenseKey`/`MASTER_LICENSE_KEY`) using a deterministic FNV-1a checksum over a salted payload — obfuscation only; integrity relies on app-signing + a future online licensing server.
+- ✅ Persistence: entitlement stored in SQLite `settings` under `app.entitlement`; `useSettingsStore` gains `tier` + `unlockPro(licenseKey)` (validates → persists → upgrades). No migration needed (settings table is key/value).
+- ✅ UI: `src/components/upgrade.tsx` — `UpgradeProvider` (mounted in root layout) + `useUpgrade().showUpgrade(feature)` + `UpgradeDialog` (license-key entry, feature highlight, Pro feature list) + `ProGate` (renders children or a locked card with Upgrade button).
+- ✅ Gates wired: **Settings** — new SlorCalcPro status card at top + Company profile card locked behind Pro; **Reports** — Proposal PDF button + Scenario comparison card behind Pro (design summary PDF, BOM CSV, JSON backup/restore stay free); **Projects** — free tier capped at 3 projects (FAB/empty-state/duplicate gate to upgrade dialog + defensive store-level guard in `create`/`duplicate`/`importProject`).
+- ✅ Tests: +14 (`src/core/__tests__/capabilities.test.ts` — registry integrity, tier matrix, project cap, license validation incl. tampering/malformed; `src/store/__tests__/settings.test.ts` — default tier, unlock+persist+reload, generated keys, invalid-key rejection) — **250/250 green**.
+- ✅ Gates green: tsc ✓ · eslint ✓ · jest **250/250** ✓ · `expo export --platform android` ✓ (branch `feat/pro-gating`, not in the in-progress APK build).
+
 ### 2026-08-11 — P0: monthly PSH + expanded cities + worst-month auto-selection
 - ✅ Migration v7 (`src/db/schema.ts`): `ALTER TABLE psh_locations ADD COLUMN monthly_psh_json TEXT;` — 12-value Jan–Dec profile is now the source of truth when present; `winter_psh`/`summer_psh` remain as fallback + display anchors.
 - ✅ Core engine: `SystemInput.monthlyPsh?` (`src/core/types.ts`); `designSystem` auto-selects the worst month (`min(monthlyPsh)`) for PV array sizing (new audit id `pv.worstMonth`); `estimateProduction` consumes a stored profile directly instead of the synth winter/summer curve; `pv.ts` param renamed `winterPsh` → `designPsh` (audit formula `DC_Wh ÷ designPSH ÷ lossFactor`); `costing.avgPsh` uses the monthly mean when a profile is present.

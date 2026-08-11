@@ -34,6 +34,7 @@ export function buildBom(result: DesignResult, units?: UnitSettings): BomItem[] 
   const inverterSpec = input.selected?.inverter ?? referenceInverterFor(input.systemType);
   const isOnGrid = input.systemType === 'on-grid';
   const isOffGrid = input.systemType === 'off-grid';
+  const generator = result.generator;
 
   if (panel) {
     items.push({
@@ -59,6 +60,32 @@ export function buildBom(result: DesignResult, units?: UnitSettings): BomItem[] 
       spec: `${inverterSpec.continuousPowerW} W continuous · ${inverterSpec.surgePowerW} W surge · ${inverterSpec.supportedTypes.join('/')}`,
       qty: 1,
       unit: 'pc',
+    });
+  }
+
+  if (generator) {
+    items.push({
+      category: 'Backup generator',
+      part: `Diesel genset ${generator.recommendedKw} kW`,
+      spec: `Charger ${generator.requiredChargerKw} kW · runtime ~${generator.runtimeHoursPerDay} h/day`,
+      qty: 1,
+      unit: 'pc',
+    });
+    items.push({
+      category: 'Backup generator',
+      part: 'Generator battery charger (AC→DC)',
+      spec: `${generator.requiredChargerKw} kW rated`,
+      qty: 1,
+      unit: 'pc',
+    });
+    items.push({
+      category: 'Backup generator',
+      part: 'Fuel estimate',
+      spec: `${generator.dailyFuelL} L/day · ${generator.annualFuelL} L/yr${
+        generator.annualFuelCost != null ? ` · ${generator.annualFuelCost} cost/yr` : ''
+      }`,
+      qty: 1,
+      unit: 'est.',
     });
   }
 

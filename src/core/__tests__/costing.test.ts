@@ -159,6 +159,34 @@ describe('estimateCost — system type shapes the bill of materials', () => {
     expect(estimate.lines.find((l) => l.id === 'controller')).toBeDefined();
     expect(estimate.lines.find((l) => l.id === 'batteries')).toBeDefined();
   });
+
+  it('sizes generator cost lines from the design result (off-grid/hybrid)', () => {
+    const estimate = estimateFor(HYBRID_INPUT);
+    const genset = estimate.lines.find((l) => l.id === 'generator');
+    const charger = estimate.lines.find((l) => l.id === 'generator-charger');
+    expect(genset).toBeDefined();
+    expect(charger).toBeDefined();
+    expect(genset?.total).toBeCloseTo(
+      DEFAULT_PRICE_BOOK.generatorFixed +
+        designSystem(HYBRID_INPUT).generator?.recommendedKw! * DEFAULT_PRICE_BOOK.generatorDollarsPerKw,
+      2,
+    );
+    expect(estimate.assumptions.some((a) => a.includes('Backup generator'))).toBe(true);
+  });
+
+  it('excludes generator lines for on-grid systems', () => {
+    const onGrid: SystemInput = {
+      loads: WORKED_LOADS,
+      systemType: 'on-grid',
+      winterPsh: 4.0,
+      summerPsh: 6.0,
+      autonomyDays: 1,
+      chemistry: 'lifepo4',
+    };
+    const estimate = estimateFor(onGrid);
+    expect(estimate.lines.find((l) => l.id === 'generator')).toBeUndefined();
+    expect(estimate.lines.find((l) => l.id === 'generator-charger')).toBeUndefined();
+  });
 });
 
 describe('estimateCost — price book defaults', () => {

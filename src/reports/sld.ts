@@ -258,9 +258,35 @@ export function buildSldDiagram(result: DesignResult): SldDiagram {
     });
   }
 
+  // Backup generator branch (off-grid / hybrid) feeding the loads/ATS bus.
+  if (result.generator) {
+    const loadsIndex = chain.findIndex((n) => n.id === 'loads');
+    const generatorNode: SldNode = {
+      id: 'generator',
+      type: 'source',
+      label: 'Generator',
+      sublabel: `${result.generator.recommendedKw} kW`,
+      detail: [
+        `Recommended rating ${result.generator.recommendedKw} kW`,
+        `Battery charger ${result.generator.requiredChargerKw} kW`,
+        `Runtime ~${result.generator.runtimeHoursPerDay} h/day`,
+        `Fuel ~${result.generator.dailyFuelL} L/day`,
+      ],
+      x: chain[loadsIndex].x,
+      y: BRANCH_Y + NODE_H + GAP,
+    };
+    nodes.push(generatorNode);
+    edges.push({
+      id: 'e-loads-generator',
+      from: 'loads',
+      to: 'generator',
+      dashed: true,
+    });
+  }
+
   return {
     width,
-    height: BRANCH_Y + NODE_H + GAP,
+    height: BRANCH_Y + (result.generator ? 2 * NODE_H + 2 * GAP : NODE_H + GAP),
     nodes,
     edges,
   };

@@ -41,6 +41,12 @@ export function renderSldHtml(result: DesignResult): string {
     if (protection.atsRequired) blocks.push('<td class="sld protect">ATS</td>');
     blocks.push('<td class="sld grid">Grid</td>');
   }
+  if (result.generator) {
+    blocks.push(
+      `<td class="sld source">Genset ${result.generator.recommendedKw} kW</td>`,
+      `<td class="sld protect">Charger ${result.generator.requiredChargerKw} kW</td>`,
+    );
+  }
 
   return `
     <table class="sld-table"><tr>
@@ -178,6 +184,11 @@ export function buildPdfHtml(data: PdfReportData): string {
     <tr><td>AC breaker</td><td>${protection.acBreakerStandardA} A</td></tr>
     <tr><td>Backfeed rule (120%)</td><td>${protection.backfeedPasses ? 'PASS' : 'FAIL'}</td></tr>
     <tr><td>SPD</td><td>${protection.spdType}</td></tr>
+    ${
+      result.generator
+        ? `<tr><td>Backup generator</td><td>${result.generator.recommendedKw} kW · charger ${result.generator.requiredChargerKw} kW · ~${result.generator.runtimeHoursPerDay} h/day</td></tr>`
+        : ''
+    }
   </table>
 
   ${

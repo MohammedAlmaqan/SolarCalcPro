@@ -24,6 +24,9 @@ export interface PriceBook {
   cableDollarsPerMeterPerMm2: number;
   /** Fixed allowance for breakers, isolators, SPD, busbar & lugs. */
   protectionFixed: number;
+  /** Backup generator fixed base price, plus a per-rated-kW charge. */
+  generatorFixed: number;
+  generatorDollarsPerKw: number;
   /** Balance-of-system (racking, mounts, conduit, misc) as a fraction of equipment. */
   bosPct: number;
   /** Installation & labor as a fraction of equipment. */
@@ -39,6 +42,8 @@ export const DEFAULT_PRICE_BOOK: PriceBook = {
   controllerPwmFixed: 60,
   cableDollarsPerMeterPerMm2: 0.9,
   protectionFixed: 120,
+  generatorFixed: 850,
+  generatorDollarsPerKw: 180,
   bosPct: 0.12,
   laborPct: 0.15,
 };
@@ -182,6 +187,27 @@ export function estimateCost(
     line('protection', 'Protection', 'Protection & disconnects', 1, 'kit', money(book.protectionFixed)),
   );
 
+  if (result.generator) {
+    lines.push(
+      line(
+        'generator',
+        'Backup generator',
+        `Diesel genset ${result.generator.recommendedKw} kW`,
+        1,
+        'pc',
+        money(book.generatorFixed + result.generator.recommendedKw * book.generatorDollarsPerKw),
+      ),
+      line(
+        'generator-charger',
+        'Backup generator',
+        'Generator battery charger',
+        1,
+        'pc',
+        money(result.generator.requiredChargerKw * book.generatorDollarsPerKw),
+      ),
+    );
+  }
+
   const equipmentSubtotal = money(lines.reduce((sum, item) => sum + item.total, 0));
   const bosTotal = money(equipmentSubtotal * book.bosPct);
   const laborTotal = money(equipmentSubtotal * book.laborPct);
@@ -229,6 +255,15 @@ export function estimateCost(
     batteryAging ? batteryAging.recommendation : 'No battery bank modelled (on-grid).',
     'Cable runs counted as 2× one-way length; prices scale with conductor cross-section.',
   ];
+
+  if (result.generator) {
+    assumptions.push(
+      `Backup generator: ${result.generator.recommendedKw} kW genset covering ${result.generator.runtimeHoursPerDay} h/day runtime (~${result.generator.dailyFuelL} L/day fuel).`,
+    );
+    if (input.fuelPricePerL != null) {
+      assumptions.push(`Generator fuel priced at ${currency}${input.fuelPricePerL.toFixed(2)}/L → ~${currency}${Math.round(result.generator.annualFuelL * input.fuelPricePerL)}/yr fuel cost (excluded from the installed-cost total).`);
+    }
+  }
 
   return {
     currency,

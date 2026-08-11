@@ -25,6 +25,13 @@ function extract(scenario: ScenarioRecord): Record<string, string | number> {
     'AC cable (mm²)': cables.acOutput.crossSectionMm2,
     'PV OCPD (A)': protection.pvSourceOcpdStandardA,
     'AC breaker (A)': protection.acBreakerStandardA,
+    ...(r.generator
+      ? {
+          'Generator (kW)': fmt(r.generator.recommendedKw),
+          'Gen runtime (h/day)': fmt(r.generator.runtimeHoursPerDay),
+          'Gen fuel (L/day)': fmt(r.generator.dailyFuelL),
+        }
+      : {}),
     Checks: r.warnings.filter((w) => w.severity === 'error').length,
   };
 }

@@ -130,6 +130,36 @@ describe('report builders (pure TS)', () => {
     expect(bom.some((item) => item.category === 'Charge controller')).toBe(false);
   });
 
+  test('BOM includes backup generator items for off-grid/hybrid systems', () => {
+    const result = sampleResult();
+    const bom = buildBom(result);
+    expect(result.generator).toBeTruthy();
+    const genset = bom.find((item) => item.category === 'Backup generator');
+    expect(genset).toBeDefined();
+    expect(genset?.part).toContain(`${result.generator!.recommendedKw} kW`);
+    expect(bom.filter((item) => item.category === 'Backup generator').length).toBeGreaterThanOrEqual(3);
+  });
+
+  test('SLD includes a generator node for off-grid/hybrid systems', () => {
+    const result = sampleResult();
+    const diagram = buildSldDiagram(result);
+    const generator = diagram.nodes.find((node) => node.id === 'generator');
+    expect(generator).toBeDefined();
+    expect(generator?.sublabel).toContain(`${result.generator!.recommendedKw} kW`);
+    expect(diagram.edges.some((edge) => edge.from === 'loads' && edge.to === 'generator')).toBe(true);
+  });
+
+  test('comparison surfaces generator metrics only where present', () => {
+    const result = sampleResult();
+    const { rows } = compareScenarios([makeScenario('with-gen', result)]);
+    const metricNames = rows.map((row) => row.metric);
+    expect(metricNames).toContain('Generator (kW)');
+    expect(metricNames).toContain('Gen fuel (L/day)');
+    const onGrid = designSystem({ ...sampleInput(), systemType: 'on-grid' });
+    const { rows: rowsOnGrid } = compareScenarios([makeScenario('grid', onGrid)]);
+    expect(rowsOnGrid.map((row) => row.metric)).not.toContain('Generator (kW)');
+  });
+
   test('groupBom preserves category order and aggregates items', () => {
     const result = sampleResult();
     const groups = groupBom(buildBom(result));

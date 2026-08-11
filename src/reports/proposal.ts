@@ -202,6 +202,11 @@ export function buildProposalPdfHtml(data: ProposalData): string {
     <div class="stat"><div class="lbl">PV array</div><div class="val">${f.power(pv.actualArrayWatts)}</div><div class="lbl">${pv.seriesCount}S × ${pv.parallelCount}P</div></div>
     <div class="stat"><div class="lbl">Battery bank</div><div class="val">${f.number(battery.actualCapacityAh, 0)} Ah</div><div class="lbl">${battery.batteryCount} cells @ ${systemVoltage} V</div></div>
     <div class="stat"><div class="lbl">Inverter</div><div class="val">${f.power(inverter.selectedContinuousWatts ?? inverter.recommendedContinuousWatts)}</div><div class="lbl">surge ${f.power(inverter.recommendedSurgeWatts)}</div></div>
+    ${
+      result.generator
+        ? `<div class="stat"><div class="lbl">Backup generator</div><div class="val">${result.generator.recommendedKw} kW</div><div class="lbl">~${result.generator.dailyFuelL} L/day · ${money(result.generator.annualFuelCost ?? 0)}/yr fuel${result.generator.annualFuelCost == null ? ' (price not set)' : ''}</div></div>`
+        : ''
+    }
     <div class="stat"><div class="lbl">Estimated system cost</div><div class="val">${money(cost.total)}</div><div class="lbl">incl. BOS &amp; installation</div></div>
   </div>
 
@@ -228,6 +233,11 @@ export function buildProposalPdfHtml(data: ProposalData): string {
     <tr><td>AC breaker</td><td>${protection.acBreakerStandardA} A</td></tr>
     <tr><td>Backfeed rule (120%)</td><td>${protection.backfeedPasses ? 'PASS' : 'FAIL'}</td></tr>
     <tr><td>SPD</td><td>${protection.spdType}</td></tr>
+    ${
+      result.generator
+        ? `<tr><td>Backup generator</td><td>${result.generator.recommendedKw} kW · charger ${result.generator.requiredChargerKw} kW · ~${result.generator.dailyFuelL} L/day fuel</td></tr>`
+        : ''
+    }
     ${
       result.production.orientation
         ? `<tr><td>PV array orientation</td><td>${f.number(result.production.orientation.tilt, 0)}° tilt · ${f.number(result.production.orientation.azimuth, 0)}° azimuth (factor ×${f.number(result.production.orientation.annualFactor, 2)})</td></tr>`

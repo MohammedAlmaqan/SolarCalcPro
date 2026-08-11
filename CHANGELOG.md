@@ -52,6 +52,8 @@
 - ✅ Tests: +10 (production stored-profile + monsoon-inverted profile use, engine worst-month auto-selection + synth fallback, seed upsert refresh, repo read-back + manual persistence, migrate v7 column) — **236/236 green**.
 - ✅ Gates green: tsc ✓ · eslint ✓ · jest **236/236** ✓.
 - 📌 Backlog note: `audi.md` P0 flags/Pro-gating module still open (deferred by owner in favour of P1 work).
+- 📌 **P1 items — all marked pending, no implementation this session** (owner decision): SLD PNG export + tap-for-details; site photos + signature block on proposal; solar water-pumping sizing; 24h load-profile editor + daily chart (needs migration **v8** — v7 now used by monthly PSH); EV charging presets; expanded seed catalog; preset & bundle management UI; site templates.
+- 📌 **Pre-build gate for EAS preview APK — PASSED:** `expo-doctor` **20/20** ✓ · `expo install --check` ✓ (bumped 7 packages to SDK-57 expected patches: expo 57.0.12, expo-router 57.0.12, expo-build-properties 57.0.10, expo-constants 57.0.10, expo-image-picker 57.0.9, expo-splash-screen 57.0.6, jest-expo 57.0.4) · removed `eas-cli` from devDependencies (expo-doctor hard-fails when the EAS CLI is installed locally; use global `eas` or `npx eas`) · tsc ✓ · eslint ✓ · jest **236/236** ✓ · `expo export --platform android` ✓ (Hermes bundle 4.1MB, no resolution errors) · `npm ls` clean (no missing/extraneous) · preview profile = APK / internal distribution confirmed (`eas.json`). **Ready for `eas build --profile preview`.**
 
 ### 2026-08-07 — EAS preview APK build kicked off
 - ✅ Pinned `eas-cli@21.7.0` as devDependency (commit `6b9c71a`) so `npx eas` is reproducible in-repo; verified CLI works headless (`eas-cli/21.7.0`).

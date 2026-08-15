@@ -28,7 +28,6 @@ import type {
   LoadItem,
   LoadMode,
   PanelSpec,
-  StandardsPolicy,
   SystemInput,
   SystemType,
   SystemVoltage,
@@ -43,7 +42,7 @@ import { useReferenceStore } from '@/store/reference';
 import { CURRENCY_SYMBOLS, useSettingsStore } from '@/store/settings';
 import { useUnitFormatters } from '@/hooks/useUnitFormatters';
 
-export const WIZARD_STEPS = 5;
+export const WIZARD_STEPS = 4;
 
 const cToF = (c: number): number => (c * 9) / 5 + 32;
 const fToC = (f: number): number => ((f - 32) * 5) / 9;
@@ -77,6 +76,7 @@ export function DesignWizard(props: {
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [locationAdvancedOpen, setLocationAdvancedOpen] = useState(false);
 
   const [projectName, setProjectName] = useState('');
   const [clientName, setClientName] = useState('');
@@ -238,7 +238,6 @@ export function DesignWizard(props: {
   ]);
 
   const standardsPolicy = useSettingsStore((s) => s.standardsPolicy);
-  const setStandardsPolicy = useSettingsStore((s) => s.setStandardsPolicy);
   const tempUnit = useSettingsStore((s) => s.units.temp);
   const lengthUnit = useSettingsStore((s) => s.units.length);
 
@@ -462,9 +461,6 @@ export function DesignWizard(props: {
     else save();
   };
 
-  const wizardMode = useSettingsStore((s) => s.wizardMode);
-  const expert = wizardMode === 'expert';
-
   const loadSection = (
     <>
       <SegmentedField
@@ -552,55 +548,69 @@ export function DesignWizard(props: {
         }}
       />
       <Button
-        icon="map-marker-plus-outline"
-        mode="outlined"
-        onPress={() => setManualPshOpen(true)}
+        mode={locationAdvancedOpen ? 'contained-tonal' : 'outlined'}
+        icon={locationAdvancedOpen ? 'chevron-up' : 'chevron-down'}
+        onPress={() => setLocationAdvancedOpen((v) => !v)}
         style={styles.suggestButton}
       >
-        Add manual location
+        Location settings (advanced)
       </Button>
-      <SectionTitle title="Peak sun hours (manual override)" icon="weather-sunny" />
-      <View style={styles.row}>
-        <NumberField
-          label="Winter PSH"
-          value={effectiveWinterPsh}
-          onChange={(v) => {
-            setWinterPsh(v);
-            setMonthlyPsh(null);
-          }}
-          unit="h/day"
-        />
-        <NumberField
-          label="Summer PSH"
-          value={effectiveSummerPsh}
-          onChange={(v) => {
-            setSummerPsh(v);
-            setMonthlyPsh(null);
-          }}
-          unit="h/day"
-        />
-      </View>
-      <NumberField
-        label="Min. ambient temperature"
-        value={
-          minTemperatureC === null
-            ? null
-            : tempUnit === 'f'
-              ? cToF(minTemperatureC)
-              : minTemperatureC
-        }
-        onChange={(v) => setMinTemperatureC(v === null ? null : tempUnit === 'f' ? fToC(v) : v)}
-        unit={tempUnit === 'f' ? '°F' : '°C'}
-        decimals={0}
-        min={-60}
-        max={tempUnit === 'f' ? 140 : 60}
-        helperText="Used for worst-cold Voc derating (NEC 690.7)."
-      />
-    </View>
-  );
+      {locationAdvancedOpen ? (
+        <Card mode="outlined">
+          <Card.Content style={styles.gap}>
+            <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+              Optional — blank fields fall back to the city’s solar data and safe defaults.
+            </Text>
+            <Button
+              icon="map-marker-plus-outline"
+              mode="outlined"
+              onPress={() => setManualPshOpen(true)}
+              style={styles.suggestButton}
+            >
+              Add manual location
+            </Button>
+            <SectionTitle title="Peak sun hours (manual override)" icon="weather-sunny" />
+            <View style={styles.row}>
+              <NumberField
+                label="Winter PSH"
+                value={effectiveWinterPsh}
+                onChange={(v) => {
+                  setWinterPsh(v);
+                  setMonthlyPsh(null);
+                }}
+                unit="h/day"
+              />
+              <NumberField
+                label="Summer PSH"
+                value={effectiveSummerPsh}
+                onChange={(v) => {
+                  setSummerPsh(v);
+                  setMonthlyPsh(null);
+                }}
+                unit="h/day"
+              />
+            </View>
+            <NumberField
+              label="Min. ambient temperature"
+              value={
+                minTemperatureC === null
+                  ? null
+                  : tempUnit === 'f'
+                    ? cToF(minTemperatureC)
+                    : minTemperatureC
+              }
+              onChange={(v) => setMinTemperatureC(v === null ? null : tempUnit === 'f' ? fToC(v) : v)}
+              unit={tempUnit === 'f' ? '°F' : '°C'}
+              decimals={0}
+              min={-60}
+              max={tempUnit === 'f' ? 140 : 60}
+              helperText="Used for worst-cold Voc derating (NEC 690.7)."
+            />
+          </Card.Content>
+        </Card>
+      ) : null}
 
-  const step3 = (
-    <View style={styles.gap}>
+      <SectionTitle title="System type & storage" icon="power-plug-outline" />
       <SegmentedField
         label="System type"
         value={systemType}
@@ -787,7 +797,7 @@ export function DesignWizard(props: {
     </View>
   );
 
-  const step4 = (
+  const step3 = (
     <View style={styles.gap}>
       <Button
         mode="contained-tonal"
@@ -863,14 +873,12 @@ export function DesignWizard(props: {
     </View>
   );
 
-  const step5 = (
+  const step4 = (
     <ResultsView
       result={result}
       error={resultError}
       onAutoSuggest={autoSuggest}
       busy={busy}
-      standardsPolicy={standardsPolicy}
-      onStandardsPolicyChange={setStandardsPolicy}
       tilt={tilt}
       setTilt={setTilt}
       azimuth={azimuth}
@@ -891,65 +899,30 @@ export function DesignWizard(props: {
 
   return (
     <View style={styles.container}>
-      {!expert ? (
-        <StepHeader
-          step={step}
-          total={WIZARD_STEPS}
-          title={STEP_TITLES[step]}
-          subtitle={STEP_SUBTITLES[step]}
-        />
-      ) : null}
+      <StepHeader
+        step={step}
+        total={WIZARD_STEPS}
+        title={STEP_TITLES[step]}
+        subtitle={STEP_SUBTITLES[step]}
+      />
       <ScrollView
         style={styles.scroll}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.scrollContent}
       >
-        {expert ? (
-          <View style={styles.gap}>
-            {mode === 'create' ? (
-              <SectionTitle title="1 · Project & loads" icon="folder-outline" />
-            ) : null}
-            {step1}
-            <SectionTitle title="2 · Location & solar" icon="weather-sunny" />
-            {step2}
-            <SectionTitle title="3 · System type" icon="power-plug-outline" />
-            {step3}
-            <SectionTitle title="4 · Components" icon="wrench-outline" />
-            {step4}
-            <SectionTitle title="5 · Results" icon="chart-box-outline" />
-            {step5}
-          </View>
-        ) : (
-          <>
-            {step === 1 ? step1 : null}
-            {step === 2 ? step2 : null}
-            {step === 3 ? step3 : null}
-            {step === 4 ? step4 : null}
-            {step === 5 ? step5 : null}
-          </>
-        )}
+        {step === 1 ? step1 : null}
+        {step === 2 ? step2 : null}
+        {step === 3 ? step3 : null}
+        {step === 4 ? step4 : null}
       </ScrollView>
 
-      {!expert ? (
-        <StepNav
-          onBack={step > 1 ? () => setStep((s) => s - 1) : undefined}
-          onNext={goNext}
-          nextLabel={step === WIZARD_STEPS ? (saving ? 'Saving…' : 'Save & finish') : 'Next'}
-          nextDisabled={step === 1 ? !step1Valid : step === 5 ? !result : false}
-          busy={saving}
-        />
-      ) : (
-        <Button
-          mode="contained"
-          icon="content-save-outline"
-          onPress={save}
-          loading={saving}
-          disabled={mode === 'create' ? !step1Valid : false}
-          style={styles.expertSave}
-        >
-          Save & finish
-        </Button>
-      )}
+      <StepNav
+        onBack={step > 1 ? () => setStep((s) => s - 1) : undefined}
+        onNext={goNext}
+        nextLabel={step === WIZARD_STEPS ? (saving ? 'Saving…' : 'Save & finish') : 'Next'}
+        nextDisabled={step === 1 ? !step1Valid : step === WIZARD_STEPS ? !result : false}
+        busy={saving}
+      />
 
       <ManualPshDialog
         visible={manualPshOpen}
@@ -970,19 +943,17 @@ export function DesignWizard(props: {
 }
 
 const STEP_TITLES: Record<number, string> = {
-  1: 'Project & loads',
-  2: 'Location & solar',
-  3: 'System type',
-  4: 'Components',
-  5: 'Results',
+  1: 'Loads',
+  2: 'Location & system',
+  3: 'Components',
+  4: 'Results',
 };
 
 const STEP_SUBTITLES: Record<number, string> = {
   1: 'Name the project and list every appliance you will power.',
-  2: 'Pick the installation city or enter peak sun hours manually.',
-  3: 'Choose how the system connects and its storage settings.',
-  4: 'Select hardware from the catalog or let the app suggest.',
-  5: 'Review recommendations, warnings and the full audit trail.',
+  2: 'Pick the installation city, then choose the connection type and storage settings.',
+  3: 'Select hardware from the catalog or let the app suggest.',
+  4: 'Review recommendations, warnings and the full audit trail.',
 };
 
 const SYSTEM_TYPE_HELP: Record<SystemType, string> = {
@@ -996,8 +967,6 @@ function ResultsView(props: {
   error: string | null;
   onAutoSuggest: () => void;
   busy: boolean;
-  standardsPolicy: StandardsPolicy;
-  onStandardsPolicyChange: (policy: StandardsPolicy) => void;
   tilt: number | null;
   setTilt: (value: number | null) => void;
   azimuth: number | null;
@@ -1019,8 +988,6 @@ function ResultsView(props: {
     error,
     onAutoSuggest,
     busy,
-    standardsPolicy,
-    onStandardsPolicyChange,
     tilt,
     setTilt,
     azimuth,
@@ -1138,23 +1105,6 @@ function ResultsView(props: {
       </View>
 
       <SectionTitle title="Compliance & warnings" icon="shield-alert-outline" />
-      <SegmentedField
-        label="Standards policy"
-        value={standardsPolicy}
-        onChange={(v) => onStandardsPolicyChange(v as StandardsPolicy)}
-        options={[
-          { value: 'strict', label: 'Strict' },
-          { value: 'advisory', label: 'Advisory' },
-          { value: 'off', label: 'Off' },
-        ]}
-      />
-      <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-        {standardsPolicy === 'strict'
-          ? 'International codes enforced as-is.'
-          : standardsPolicy === 'advisory'
-            ? 'Standards checks shown as advisories — local-market components are accepted.'
-            : 'Standards checks hidden; engineering safety checks still apply.'}
-      </Text>
       <WarningsList warnings={result.warnings} />
 
       <SectionTitle title="Electrical summary" icon="format-list-bulleted" />
@@ -1694,8 +1644,5 @@ const styles = StyleSheet.create({
   suggestButton: {
     alignSelf: 'flex-start',
     marginVertical: 4,
-  },
-  expertSave: {
-    marginTop: 8,
   },
 });

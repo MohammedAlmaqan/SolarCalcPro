@@ -10,7 +10,6 @@ export type PowerUnit = 'w' | 'kw';
 export type LengthUnit = 'm' | 'ft';
 export type CableUnit = 'mm2' | 'awg';
 export type TempUnit = 'c' | 'f';
-export type WizardMode = 'wizard' | 'expert';
 export type CurrencyCode = 'USD' | 'EUR' | 'GBP' | 'SAR' | 'AED';
 
 const THEME_KEY = 'ui.theme_mode';
@@ -19,7 +18,6 @@ const LENGTH_KEY = 'ui.units.length';
 const CABLE_KEY = 'ui.units.cable';
 const TEMP_KEY = 'ui.units.temp';
 const DEFAULT_PSH_KEY = 'ui.default_psh_location';
-const WIZARD_KEY = 'ui.wizard_mode';
 const STANDARDS_KEY = 'ui.standards_policy';
 const ELECTRIC_RATE_KEY = 'ui.electric_rate';
 const DISCOUNT_RATE_KEY = 'ui.discount_rate';
@@ -104,10 +102,6 @@ function isTempUnit(v: string | null): v is TempUnit {
   return v === 'c' || v === 'f';
 }
 
-function isWizardMode(v: string | null): v is WizardMode {
-  return v === 'wizard' || v === 'expert';
-}
-
 function isStandardsPolicy(v: string | null): v is StandardsPolicy {
   return v === 'strict' || v === 'advisory' || v === 'off';
 }
@@ -117,7 +111,6 @@ interface SettingsState {
   themeMode: ThemeMode;
   units: UnitSettings;
   defaultPshLocationId: string | null;
-  wizardMode: WizardMode;
   standardsPolicy: StandardsPolicy;
   /** Grid electric rate used for payback estimates (currency/kWh). */
   electricRate: number;
@@ -136,7 +129,6 @@ interface SettingsState {
   setThemeMode: (mode: ThemeMode) => Promise<void>;
   setUnits: (patch: Partial<UnitSettings>) => Promise<void>;
   setDefaultPshLocationId: (id: string | null) => Promise<void>;
-  setWizardMode: (mode: WizardMode) => Promise<void>;
   setStandardsPolicy: (policy: StandardsPolicy) => Promise<void>;
   setElectricRate: (rate: number) => Promise<void>;
   setDiscountRate: (rate: number) => Promise<void>;
@@ -157,8 +149,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   themeMode: 'system',
   units: DEFAULT_UNITS,
   defaultPshLocationId: null,
-  wizardMode: 'wizard',
-  standardsPolicy: 'strict',
+  standardsPolicy: 'advisory',
   electricRate: 0.15,
   discountRate: 0.05,
   systemLifeYears: 25,
@@ -176,7 +167,6 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       cable,
       temp,
       defaultPsh,
-      wizard,
       standards,
       electricRate,
       discountRate,
@@ -192,7 +182,6 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       repo.get(CABLE_KEY),
       repo.get(TEMP_KEY),
       repo.get(DEFAULT_PSH_KEY),
-      repo.get(WIZARD_KEY),
       repo.get(STANDARDS_KEY),
       repo.getNumber(ELECTRIC_RATE_KEY),
       repo.getNumber(DISCOUNT_RATE_KEY),
@@ -212,8 +201,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         temp: isTempUnit(temp) ? temp : DEFAULT_UNITS.temp,
       },
       defaultPshLocationId: defaultPsh ?? null,
-      wizardMode: isWizardMode(wizard) ? wizard : 'wizard',
-      standardsPolicy: isStandardsPolicy(standards) ? standards : 'strict',
+      standardsPolicy: isStandardsPolicy(standards) ? standards : 'advisory',
       electricRate: electricRate ?? 0.15,
       discountRate: discountRate ?? 0.05,
       systemLifeYears: systemLifeYears ?? 25,
@@ -248,11 +236,6 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     if (id) await repo.set(DEFAULT_PSH_KEY, id);
     else await repo.remove(DEFAULT_PSH_KEY);
     set({ defaultPshLocationId: id });
-  },
-
-  setWizardMode: async (mode) => {
-    await settingsRepo(getDbService()).set(WIZARD_KEY, mode);
-    set({ wizardMode: mode });
   },
 
   setStandardsPolicy: async (policy) => {

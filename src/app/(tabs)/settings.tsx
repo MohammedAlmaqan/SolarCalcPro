@@ -264,18 +264,6 @@ export default function SettingsScreen() {
             <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
               Pre-fills the location step of new designs.
             </Text>
-            <SegmentedField
-              label="Design mode"
-              value={settings.wizardMode}
-              onChange={(v) => settings.setWizardMode(v as 'wizard' | 'expert')}
-              options={[
-                { value: 'wizard', label: 'Wizard' },
-                { value: 'expert', label: 'Expert' },
-              ]}
-            />
-            <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-              Wizard guides you step by step; expert shows every field on one screen.
-            </Text>
           </Card.Content>
         </Card>
 

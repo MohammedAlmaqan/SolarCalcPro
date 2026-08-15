@@ -68,7 +68,7 @@ export function parseDatabaseBackup(text: string): DbBackup {
     throw new Error('Invalid JSON backup file.');
   }
   if (!isRecord(raw) || raw.format !== DB_BACKUP_FORMAT) {
-    throw new Error('This file is not a SlorCalcPro database backup.');
+    throw new Error('This file is not a SolarCalcPro database backup.');
   }
   const version = typeof raw.version === 'number' ? raw.version : 0;
   if (version < 1 || version > DB_BACKUP_VERSION) {

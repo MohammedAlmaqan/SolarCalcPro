@@ -134,7 +134,7 @@ export function parseProjectImport(text: string): ProjectExport {
     throw new Error('Invalid JSON backup file.');
   }
   if (!isRecord(raw) || raw.format !== EXPORT_FORMAT) {
-    throw new Error('This file is not a SlorCalcPro project backup.');
+    throw new Error('This file is not a SolarCalcPro project backup.');
   }
   const project = raw.project;
   if (!isRecord(project) || typeof project.name !== 'string') {

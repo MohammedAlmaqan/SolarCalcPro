@@ -141,7 +141,7 @@ export function buildPdfHtml(data: PdfReportData): string {
   <div class="brand">
     <div class="logo">S</div>
     <div>
-      <div class="brand-name">SlorCalcPro</div>
+      <div class="brand-name">SolarCalcPro</div>
       <div class="brand-tag">Offline solar system design &amp; engineering report</div>
     </div>
   </div>
@@ -209,7 +209,7 @@ export function buildPdfHtml(data: PdfReportData): string {
   </table>
 
   <div class="footer">
-    Generated offline by SlorCalcPro. Engineering reference data should be verified against manufacturer datasheets.
+    Generated offline by SolarCalcPro. Engineering reference data should be verified against manufacturer datasheets.
     Calculations per NEC 690/705 and IEC 62548.
   </div>
 </body>

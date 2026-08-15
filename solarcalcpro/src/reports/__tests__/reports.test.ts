@@ -273,7 +273,7 @@ describe('report builders (pure TS)', () => {
   });
 
   test('parseProjectImport rejects non-backup JSON', () => {
-    expect(() => parseProjectImport('{"hello": 1}')).toThrow(/not a SlorCalcPro/);
+    expect(() => parseProjectImport('{"hello": 1}')).toThrow(/not a SolarCalcPro/);
     expect(() => parseProjectImport('not json')).toThrow(/Invalid JSON/);
   });
 
@@ -384,7 +384,7 @@ describe('report builders (pure TS)', () => {
       result,
       bom: buildBom(result),
     });
-    expect(html).toContain('SlorCalcPro');
+    expect(html).toContain('SolarCalcPro');
     expect(html).toContain('Single-line diagram');
     expect(html).toContain('Bill of materials');
     expect(html).toContain('Cabin');

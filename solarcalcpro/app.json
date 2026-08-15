@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "SlorCalcPro",
+    "name": "SolarCalcPro",
     "slug": "solarcalcapp",
     "owner": "merathdev",
     "version": "0.1.0",
@@ -33,7 +33,7 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "SlorCalcPro uses your photo library to add your company logo to proposal documents."
+          "photosPermission": "SolarCalcPro uses your photo library to add your company logo to proposal documents."
         }
       ]
     ],

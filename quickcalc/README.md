@@ -2,13 +2,13 @@
 
 A self-contained Expo (React Native) rewrite of the `SolarCalPro5.html` (v2.4.0) web calculator —
 a solar system sizing tool with **Arabic (RTL) + English** support. It lives in `quickcalc/` as a
-**separate project** from the main `SlorCalcPro` app (which uses an NEC/IEC engineering engine).
+**separate project** from the main `SolarCalcPro` app (which uses an NEC/IEC engineering engine).
 
 - **Stack:** Expo SDK 57 · React Native 0.86 · TypeScript · Expo Router · React Native Paper · Zustand
 - **Persistence:** AsyncStorage (`solar-calc-web-v2` key)
 - **Basis:** Ported from `SolarCalPro5.html` (v2.4.0); that file is no longer stored in the repo
 
-## Key difference from the main SlorCalcPro app
+## Key difference from the main SolarCalcPro app
 
 This app mirrors the HTML calculator's methodology exactly, including its night-only battery
 sizing:

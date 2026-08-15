@@ -186,7 +186,7 @@ export function buildProposalPdfHtml(data: ProposalData): string {
           ? `<img class="logo-img" src="${logoUri}" alt="${esc(profile.companyName || 'Logo')}" />`
           : `<div class="logo">${esc((profile.companyName || 'S').charAt(0).toUpperCase())}</div>`
       }
-      <div class="brand-name">${esc(profile.companyName || 'SlorCalcPro')}</div>
+      <div class="brand-name">${esc(profile.companyName || 'SolarCalcPro')}</div>
       <div class="brand-tag">${esc(profile.tagline || 'Offline solar system design & engineering')}</div>
     </div>
     <div class="contact">
@@ -407,7 +407,7 @@ export function buildProposalPdfHtml(data: ProposalData): string {
   </div>
 
   <div class="footer">
-    Generated offline by SlorCalcPro. Calculations per NEC 690/705 and IEC 62548.
+    Generated offline by SolarCalcPro. Calculations per NEC 690/705 and IEC 62548.
     Prices are estimates — verify locally before purchase. Financial projections assume the entered grid tariff and are not guaranteed.
   </div>
   </div>

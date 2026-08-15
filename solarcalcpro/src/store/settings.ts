@@ -42,7 +42,7 @@ export interface CompanyProfile {
 }
 
 export const DEFAULT_COMPANY_PROFILE: CompanyProfile = {
-  companyName: 'SlorCalcPro',
+  companyName: 'SolarCalcPro',
   tagline: 'Offline solar system design & engineering',
   engineerName: '',
   phone: '',

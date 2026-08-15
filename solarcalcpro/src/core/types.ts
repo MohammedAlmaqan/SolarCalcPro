@@ -1,5 +1,5 @@
 /**
- * Core domain types for the SlorCalcPro calculation engine.
+ * Core domain types for the SolarCalcPro calculation engine.
  * Pure TypeScript — no React Native / UI imports (platform-agnostic).
  */
 

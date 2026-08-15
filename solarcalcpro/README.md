@@ -1,4 +1,4 @@
-# SlorCalcPro (main app)
+# SolarCalcPro (main app)
 
 Professional solar system design tool for Android — 100% offline.
 
@@ -31,7 +31,7 @@ Professional solar system design tool for Android — 100% offline.
 
 ## Key design notes
 
-- All commands run from this directory (`slorcalcpro/`), not the repo root.
+- All commands run from this directory (`solarcalcpro/`), not the repo root.
 - Sizing is based on an NEC/IEC engineering engine in `src/core/formulas/` + `src/core/standards/`.
 - Battery sizing uses **total daily energy** (see `src/core/formulas/battery.ts`) — deliberately
   different from the HTML/quickcalc app, which sizes from night energy only.

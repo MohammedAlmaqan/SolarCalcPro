@@ -463,7 +463,7 @@ export default function ReportsScreen() {
           <Dialog.Title>Restore project backup</Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium">
-              {importError || 'Pick a SlorCalcPro JSON backup file to restore it as a new project.'}
+              {importError || 'Pick a SolarCalcPro JSON backup file to restore it as a new project.'}
             </Text>
           </Dialog.Content>
           <Dialog.Actions>

@@ -150,7 +150,7 @@ export default function SettingsScreen() {
       <View style={styles.container}>
         <Card mode="outlined">
           <Card.Title
-            title={settings.tier === 'pro' ? 'SlorCalcPro — active' : 'SlorCalcPro'}
+            title={settings.tier === 'pro' ? 'SolarCalcPro — active' : 'SolarCalcPro'}
             titleVariant="titleMedium"
             right={() => (
               <List.Icon

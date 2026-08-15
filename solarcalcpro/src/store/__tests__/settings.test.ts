@@ -24,7 +24,7 @@ describe('useSettingsStore — entitlement tier', () => {
       tariffEscalationRate: 0.02,
       currency: 'USD',
       companyProfile: {
-        companyName: 'SlorCalcPro',
+        companyName: 'SolarCalcPro',
         tagline: '',
         engineerName: '',
         phone: '',

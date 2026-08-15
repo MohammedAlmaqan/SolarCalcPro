@@ -87,7 +87,7 @@ export function UpgradeDialog({
   return (
     <Dialog visible={visible} onDismiss={onDismiss}>
       <Dialog.Title>
-        {isPro ? 'SlorCalcPro is active' : 'Upgrade to SlorCalcPro'}
+        {isPro ? 'SolarCalcPro is active' : 'Upgrade to SolarCalcPro'}
       </Dialog.Title>
       <Dialog.Content>
         {highlight ? (
@@ -104,7 +104,7 @@ export function UpgradeDialog({
         ) : null}
         {isPro ? (
           <Text variant="bodyMedium">
-            All Pro features are unlocked on this device. Thank you for supporting SlorCalcPro.
+            All Pro features are unlocked on this device. Thank you for supporting SolarCalcPro.
           </Text>
         ) : (
           <>

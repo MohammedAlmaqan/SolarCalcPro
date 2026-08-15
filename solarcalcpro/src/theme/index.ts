@@ -1,7 +1,7 @@
 import { MD3DarkTheme, MD3LightTheme } from 'react-native-paper';
 
 /**
- * SlorCalcPro brand themes (Material Design 3).
+ * SolarCalcPro brand themes (Material Design 3).
  *
  * Identity: deep solar navy (sky/water) primary, warm sun-amber secondary,
  * and leaf-green tertiary for eco/battery. A near-full MD3 token set keeps

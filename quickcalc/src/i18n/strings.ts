@@ -199,9 +199,7 @@ export interface AppStrings {
   currentBattery: string;
   currentSolar: string;
   currentLoad: string;
-  breaker32: string;
-  breaker25: string;
-  breaker63: string;
+  breakerLabel: string;
 
   tipsTitle: string;
   tipsInstallTitle: string;
@@ -529,9 +527,7 @@ export const ar: AppStrings = {
   currentBattery: 'تيار البطارية الأقصى',
   currentSolar: 'تيار الشحن الشمسي',
   currentLoad: 'تيار الحمل',
-  breaker32: 'قاطع 32A',
-  breaker25: 'قاطع 25A',
-  breaker63: 'قاطع 63A',
+  breakerLabel: 'قاطع',
 
   tipsTitle: '🔧 توصيات التركيب والصيانة',
   tipsInstallTitle: 'توصيات التركيب:',
@@ -859,9 +855,7 @@ export const en: AppStrings = {
   currentBattery: 'Maximum battery current',
   currentSolar: 'Solar charge current',
   currentLoad: 'Load current',
-  breaker32: '32A breaker',
-  breaker25: '25A breaker',
-  breaker63: '63A breaker',
+  breakerLabel: 'Breaker',
 
   tipsTitle: '🔧 Installation and maintenance recommendations',
   tipsInstallTitle: 'Installation recommendations:',

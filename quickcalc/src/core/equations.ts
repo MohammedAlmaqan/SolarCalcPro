@@ -8,6 +8,7 @@ export type EquationKey =
   | 'solarPanels'
   | 'batteryCurrent'
   | 'solarCurrent'
+  | 'loadCurrent'
   | 'cableSize'
   | 'autonomy'
   | 'voltageGuide';
@@ -29,6 +30,7 @@ export const EQUATION_KEYS: EquationKey[] = [
   'solarPanels',
   'batteryCurrent',
   'solarCurrent',
+  'loadCurrent',
   'cableSize',
   'autonomy',
   'voltageGuide',
@@ -37,7 +39,7 @@ export const EQUATION_KEYS: EquationKey[] = [
 export const EQUATION_CATEGORIES: { id: string; keys: EquationKey[] }[] = [
   { id: 'energy', keys: ['totalEnergy', 'peakPower', 'surgePower'] },
   { id: 'components', keys: ['inverter', 'batterySeparate', 'solarPanels'] },
-  { id: 'currents', keys: ['batteryCurrent', 'solarCurrent', 'cableSize'] },
+  { id: 'currents', keys: ['batteryCurrent', 'solarCurrent', 'loadCurrent', 'cableSize'] },
   { id: 'efficiency', keys: ['autonomy', 'voltageGuide'] },
 ];
 
@@ -141,6 +143,16 @@ export const EQUATIONS_AR: Record<EquationKey, EquationDefinition> = {
       'تيار الشحن أعلى من تيار البطارية بسبب كفاءة الشحن',
     ],
     example: '8000 واط ÷ 48 فولت = 166.7 أمبير',
+  },
+  loadCurrent: {
+    title: 'حساب تيار الحمل',
+    formula: 'I_load = P_peak ÷ V_system',
+    variables: [
+      'P_peak = أقصى حمل متزامن (واط)',
+      'V_system = جهد النظام (12, 24, 48, 96 فولت)',
+      'تيار الحمل هو أقصى تيار يسحبه النظام من الإنفرتر',
+    ],
+    example: 'أقصى حمل 2100 واط ÷ 48 فولت = 43.75 أمبير',
   },
   cableSize: {
     title: 'حساب مقاس الكابل',
@@ -279,6 +291,16 @@ export const EQUATIONS_EN: Record<EquationKey, EquationDefinition> = {
       'Charge current is higher than battery current due to charge efficiency',
     ],
     example: '8000 W ÷ 48 V = 166.7 A',
+  },
+  loadCurrent: {
+    title: 'Load current calculation',
+    formula: 'I_load = P_peak ÷ V_system',
+    variables: [
+      'P_peak = maximum simultaneous load (W)',
+      'V_system = system voltage (12, 24, 48, 96 V)',
+      'Load current is the maximum current drawn from the inverter',
+    ],
+    example: 'Peak load 2100 W ÷ 48 V = 43.75 A',
   },
   cableSize: {
     title: 'Cable size calculation',

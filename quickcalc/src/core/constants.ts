@@ -32,6 +32,8 @@ export const INVERTER_EFFICIENCY_BY_VOLTAGE: Record<SystemVoltage, number> = {
 
 export const CABLE_STANDARD_SIZES = [1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95, 120];
 
+export const BREAKER_STANDARD_SIZES = [6, 10, 16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 250, 315, 400];
+
 export const COPPER_RESISTIVITY = 0.0178;
 export const ALUMINUM_RESISTIVITY = 0.0283;
 

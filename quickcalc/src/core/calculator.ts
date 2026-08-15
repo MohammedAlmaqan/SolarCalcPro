@@ -1,6 +1,7 @@
 import {
   APP_VERSION,
   BATTERY_EFFICIENCIES,
+  BREAKER_STANDARD_SIZES,
   CABLE_LENGTHS,
   CABLE_STANDARD_SIZES,
   CALCULATOR_STANDARD_SIZES,
@@ -193,6 +194,7 @@ export function calculateCableSize(
   voltage: number,
   material: 'copper' | 'aluminum' = 'copper',
 ): string {
+  if (current <= 0) return `${CABLE_STANDARD_SIZES[0]} mm2`;
   const voltageDrop = voltage * 0.03;
   const maxResistance = voltageDrop / current;
   const resistivity = material === 'copper' ? COPPER_RESISTIVITY : 0.0283;
@@ -207,6 +209,15 @@ export function calculateCableSize(
   }
 
   return `${selectedSize} mm2`;
+}
+
+export function calculateBreakerSize(current: number): number {
+  if (current <= 0) return BREAKER_STANDARD_SIZES[0];
+  const required = current * 1.25;
+  for (const size of BREAKER_STANDARD_SIZES) {
+    if (size >= required) return size;
+  }
+  return BREAKER_STANDARD_SIZES[BREAKER_STANDARD_SIZES.length - 1];
 }
 
 export interface CalculateSystemLabels {
@@ -245,9 +256,7 @@ export interface CalculateSystemLabels {
     battery: string;
     solar: string;
     load: string;
-    breakerBattery: string;
-    breakerSolar: string;
-    breakerLoad: string;
+    breakerLabel: string;
   };
 }
 
@@ -333,11 +342,6 @@ export function calculateSystem(input: SystemInput, labels: CalculateSystemLabel
     finalEnergyNight *= 1.2;
   }
 
-  if (backupDaysCount > 0) {
-    finalEnergyDay *= 1 + backupDaysCount;
-    finalEnergyNight *= 1 + backupDaysCount;
-  }
-
   finalEnergyDay = roundToTwo(finalEnergyDay);
   finalEnergyNight = roundToTwo(finalEnergyNight);
   const finalEnergy = roundToTwo(finalEnergyDay + finalEnergyNight);
@@ -345,7 +349,7 @@ export function calculateSystem(input: SystemInput, labels: CalculateSystemLabel
   const realisticPeakPower = totalPower * 0.7;
   const realisticSurgePower = Math.max(surgePower * 0.5, realisticPeakPower * 1.5);
 
-  const inverter = calculateInverterSize(realisticPeakPower, realisticSurgePower, systemVoltage);
+  const inverter = calculateInverterSize(realisticPeakPower, surgePower, systemVoltage);
 
   const battery = calculateBatteryCapacitySeparate(
     finalEnergyDay,
@@ -356,7 +360,7 @@ export function calculateSystem(input: SystemInput, labels: CalculateSystemLabel
     systemVoltage,
   );
 
-  const requiredSolarEnergy = (finalEnergyDay + finalEnergyNight / 0.85) * 1.3;
+  const requiredSolarEnergy = finalEnergyDay + finalEnergyNight / 0.85;
   const solar = calculateSolarPanels(requiredSolarEnergy, sunHours, systemVoltage);
 
   const batteryCurrent = calculateCurrent(inverter.size, systemVoltage);
@@ -462,7 +466,7 @@ export function calculateSystem(input: SystemInput, labels: CalculateSystemLabel
       label: labels.currentLabels.battery,
       value: `${roundToTwo(batteryCurrent)} A`,
       cable: cableBattery,
-      breaker: labels.currentLabels.breakerBattery,
+      breaker: `${labels.currentLabels.breakerLabel} ${calculateBreakerSize(batteryCurrent)}A`,
       equationKey: 'batteryCurrent',
       actualValue: `${roundToTwo(batteryCurrent)}A`,
     },
@@ -470,7 +474,7 @@ export function calculateSystem(input: SystemInput, labels: CalculateSystemLabel
       label: labels.currentLabels.solar,
       value: `${roundToTwo(solarCurrent)} A`,
       cable: cableSolar,
-      breaker: labels.currentLabels.breakerSolar,
+      breaker: `${labels.currentLabels.breakerLabel} ${calculateBreakerSize(solarCurrent)}A`,
       equationKey: 'solarCurrent',
       actualValue: `${roundToTwo(solarCurrent)}A`,
     },
@@ -478,8 +482,8 @@ export function calculateSystem(input: SystemInput, labels: CalculateSystemLabel
       label: labels.currentLabels.load,
       value: `${roundToTwo(loadCurrent)} A`,
       cable: cableLoad,
-      breaker: labels.currentLabels.breakerLoad,
-      equationKey: 'batteryCurrent',
+      breaker: `${labels.currentLabels.breakerLabel} ${calculateBreakerSize(loadCurrent)}A`,
+      equationKey: 'loadCurrent',
       actualValue: `${roundToTwo(loadCurrent)}A`,
     },
   ];

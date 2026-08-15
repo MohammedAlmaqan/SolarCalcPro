@@ -1,5 +1,6 @@
 import {
   calculateBatteryCapacitySeparate,
+  calculateBreakerSize,
   calculateCableSize,
   calculateFromMonthly,
   calculateFromRooftop,
@@ -46,9 +47,7 @@ const LABELS: CalculateSystemLabels = {
     battery: 'Battery',
     solar: 'Solar',
     load: 'Load',
-    breakerBattery: 'B32',
-    breakerSolar: 'S25',
-    breakerLoad: 'L63',
+    breakerLabel: 'Breaker',
   },
 };
 
@@ -152,6 +151,20 @@ describe('calculateCableSize', () => {
   });
 });
 
+describe('calculateBreakerSize', () => {
+  it('selects a standard breaker at least 1.25x the current', () => {
+    expect(calculateBreakerSize(3.5)).toBe(6);
+    expect(calculateBreakerSize(16)).toBe(20);
+    expect(calculateBreakerSize(25)).toBe(32);
+    expect(calculateBreakerSize(41.67)).toBe(63);
+    expect(calculateBreakerSize(200)).toBe(250);
+  });
+
+  it('returns the smallest breaker for zero current', () => {
+    expect(calculateBreakerSize(0)).toBe(6);
+  });
+});
+
 describe('calculateSystem', () => {
   it('sizes the battery from night energy only and sizes inverter from peak load', () => {
     const input: SystemInput = {
@@ -200,7 +213,7 @@ describe('calculateSystem', () => {
     expect(result.autonomy).toBeCloseTo(0.94, 1);
   });
 
-  it('applies expansion and backup-day margins', () => {
+  it('applies expansion and backup-day margins exactly once each', () => {
     const input: SystemInput = {
       mode: 'detailed',
       settings: {
@@ -230,9 +243,17 @@ describe('calculateSystem', () => {
     };
 
     const result = calculateSystem(input, LABELS);
-    const baseNight = 0.72 * 1.2 * 1.2 * 3;
+    const baseNight = 0.72 * 1.2 * 1.2;
     expect(result.energyNight).toBeCloseTo(baseNight, 2);
-    expect(result.battery.ah).toBe(248);
+    expect(result.energyDay).toBeCloseTo(1.2 * 1.2 * 1.2, 2);
+
+    const roundedNight = Math.round(baseNight * 100) / 100;
+    const batteryKwh = (roundedNight / (0.8 * 0.98)) * 3;
+    expect(result.battery.kwh).toBeCloseTo(batteryKwh, 2);
+    expect(result.battery.ah).toBe(Math.ceil((batteryKwh * 1000) / 48));
+
+    expect(result.solar.count).toBe(2);
+    expect(result.currentRows.find((r) => r.label === 'Battery')?.breaker).toBe('Breaker 63A');
   });
 
   it('handles monthly mode estimates', () => {
@@ -259,5 +280,74 @@ describe('calculateSystem', () => {
     expect(result.energyDay).toBeCloseTo(12, 1);
     expect(result.energyNight).toBeCloseTo(12, 1);
     expect(result.applianceCount).toBe(10);
+  });
+
+  it('sizes the inverter from the full surge power per the documented formula', () => {
+    const input: SystemInput = {
+      mode: 'detailed',
+      settings: {
+        region: 'moderate',
+        sunHours: 5.5,
+        systemLoss: 20,
+        systemVoltage: 48,
+        batteryType: 'lifepo4',
+        dod: 80,
+        expandFuture: false,
+        backupDaysEnabled: false,
+        backupDaysCount: 1,
+      },
+      monthly: { consumption: 500, kwhPrice: 0.5, pattern: 'normal' },
+      rooftop: { area: 20, direction: 'south', angle: '20', panelEfficiency: 'standard' },
+      appliances: [
+        {
+          id: 'm1',
+          name: 'Water pump',
+          power: 2000,
+          quantity: 1,
+          dayHours: 2,
+          nightHours: 0,
+          type: 'large_motor',
+        },
+      ],
+    };
+
+    const result = calculateSystem(input, LABELS);
+    expect(result.surgePower).toBe(6000);
+    expect(result.inverter.size).toBe(6000);
+    expect(result.inverter.surgePower).toBe(12000);
+  });
+
+  it('sets the load current row equation key to loadCurrent', () => {
+    const input: SystemInput = {
+      mode: 'detailed',
+      settings: {
+        region: 'moderate',
+        sunHours: 5.5,
+        systemLoss: 20,
+        systemVoltage: 48,
+        batteryType: 'lifepo4',
+        dod: 80,
+        expandFuture: false,
+        backupDaysEnabled: false,
+        backupDaysCount: 1,
+      },
+      monthly: { consumption: 500, kwhPrice: 0.5, pattern: 'normal' },
+      rooftop: { area: 20, direction: 'south', angle: '20', panelEfficiency: 'standard' },
+      appliances: [
+        {
+          id: 'a1',
+          name: 'TV',
+          power: 120,
+          quantity: 2,
+          dayHours: 5,
+          nightHours: 3,
+          type: 'electronics',
+        },
+      ],
+    };
+
+    const result = calculateSystem(input, LABELS);
+    const loadRow = result.currentRows.find((r) => r.label === 'Load');
+    expect(loadRow?.equationKey).toBe('loadCurrent');
   });
 });

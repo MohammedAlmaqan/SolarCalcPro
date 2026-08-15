@@ -42,9 +42,7 @@ export function makeLabels(t: AppStrings): CalculateSystemLabels {
       battery: t.currentBattery,
       solar: t.currentSolar,
       load: t.currentLoad,
-      breakerBattery: t.breaker32,
-      breakerSolar: t.breaker25,
-      breakerLoad: t.breaker63,
+      breakerLabel: t.breakerLabel,
     },
   };
 }
